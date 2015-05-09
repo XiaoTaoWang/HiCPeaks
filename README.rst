@@ -3,6 +3,22 @@ Introduction
 Here, we provide a Python implementation for BH-FDR and HICCUPS, two peak calling algorithms for
 Hi-C data, proposed by Rao et al [1]_.
 
+Requirements
+------------
+Following Python Libraries are required:
+
+a) numpy
+b) scipy
+c) scikit-learn
+d) statsmodels
+e) mirnylib
+
+You may need `conda` to install the first four::
+
+    $ conda install numpy scipy scikit-learn statsmodels
+
+You should install `mirnylib` from the source code. (Please refer to my `HiC_pipeline` for more details)
+
 
 Usage
 -----
