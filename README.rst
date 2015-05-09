@@ -13,11 +13,12 @@ c) scikit-learn
 d) statsmodels
 e) mirnylib
 
-You may need `conda` to install the first four::
+You may need ``conda`` to install the first four::
 
     $ conda install numpy scipy scikit-learn statsmodels
 
-You should install `mirnylib` from the source code. (Please refer to my `HiC_pipeline` for more details)
+You should install ``mirnylib`` from the source code. (Please refer to my ``HiC_pipeline``
+repository for more details)
 
 
 Usage
