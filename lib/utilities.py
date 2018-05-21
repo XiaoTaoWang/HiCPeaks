@@ -116,4 +116,6 @@ def toCooler(outfil, data_path, resolution, chroms=['#','X'], cache_dir=None,
             tmp.append(nondigits.pop(nondigits.index(i)))
     chromlist = tmp + sorted(nondigits)
     
+    # write the bin table
+    
         
