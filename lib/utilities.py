@@ -6,7 +6,6 @@ Created on Sat May 19 16:00:16 2018
 """
 
 import os, sys, tempfile, time, logging
-import numpy as np
 import pandas as pd
 from cooler.util import binnify
 from cooler.io import create_from_unordered, sanitize_records
@@ -132,9 +131,7 @@ def toCooler(outfil, data_path, res, assembly, chroms=['#','X'], symmetric=True,
             dtypes=output_field_dtypes,
             assembly=assembly,
             mergebuf=int(40e6),
-            ensure_sorted=False)
-    
-    
+            ensure_sorted=False)   
     
     
     
