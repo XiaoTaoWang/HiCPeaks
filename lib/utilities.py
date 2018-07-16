@@ -13,8 +13,8 @@ from cooler.io import create_from_unordered, sanitize_records
 log = logging.getLogger(__name__)
     
 
-def toCooler(outfil, data_path, res, assembly, chroms=['#','X'], symmetric=True,
-             count_type=float, cache_dir=None, delete_cache=True):
+def toCooler(outfil, data_path, res, assembly, chroms=['#','X'],
+             symmetric=False, count_type=float, cache_dir=None, delete_cache=True):
     """
     Create a Cooler from TXT Hi-C data.
     
