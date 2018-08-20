@@ -1,0 +1,119 @@
+#!/usr/bin/env python
+
+# Created on Mon Aug 20 17:20:38 2018
+
+# Author: XiaoTao Wang
+
+## Required modules
+import argparse, sys, os, logging, logging.handlers, traceback, hicpeaks
+
+currentVersion = hicpeaks.__version__
+
+def datasets_convert(metadata):
+    
+    datasets = {}
+    with open(metadata, 'r') as source:
+        for line in source:
+            if line.startswith('res'):
+                parse = line.rstrip().split(':')
+                res = int(parse[1])
+            else:
+                if line.isspace():
+                    continue
+                datasets[res] = os.path.abspath(os.path.expanduser(line.strip()))
+    
+    return datasets
+
+def getargs():
+    ## Construct an ArgumentParser object for command-line arguments
+    parser = argparse.ArgumentParser(description='''Generate cooler from TXT/NPZ Hi-C data and
+                                     Perform ICE.''',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    # Version
+    parser.add_argument('-v', '--version', action='version',
+                        version=' '.join(['%(prog)s',currentVersion]),
+                        help='Print version number and exit.')
+
+    # Output
+    parser.add_argument('-O', '--output', help='Output cooler path.')
+    
+    # Input
+    parser.add_argument('-d', '--datasets', type = datasets_convert,
+                        help = '''Path of the metadata file containing pairs of resolutions
+                               and corresponding data path. Refer to the online documentation
+                               for more details.''')
+    parser.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
+                        help = 'List of chromosome labels. Only HiC data within the specified '
+                        'chromosomes will be included. Specially, "#" stands for chromosomes '
+                        'with numerical labels. "--chroms" with zero argument will include '
+                        'all chromosome data.')
+    parser.add_argument('--assembly', help='Assembly name of the reference genome.')
+    
+    # ICE
+    parser.add_argument('--nproc', default=1, type=int,
+                        help='Number of processes used in ICE.')
+    
+    parser.add_argument('--logFile', default = 'tocooler.log', help = '''Logging file name.''')
+    
+    ## Parse the command-line arguments
+    commands = sys.argv[1:]
+    if not commands:
+        commands.append('-h')
+    args = parser.parse_args(commands)
+    
+    return args, commands
+
+def run():
+    # Parse Arguments
+    args, commands = getargs()
+    # Improve the performance if you don't want to run it
+    if commands[0] not in ['-h', '-v', '--help', '--version']:
+        ## Root Logger Configuration
+        logger = logging.getLogger()
+        logger.setLevel(10)
+        console = logging.StreamHandler()
+        filehandler = logging.handlers.RotatingFileHandler(args.logFile,
+                                                           maxBytes=50000,
+                                                           backupCount=5)
+        # Set level for Handlers
+        console.setLevel('INFO')
+        filehandler.setLevel('INFO')
+        # Customizing Formatter
+        formatter = logging.Formatter(fmt = '%(name)-25s %(levelname)-7s @ %(asctime)s: %(message)s',
+                                      datefmt = '%m/%d/%y %H:%M:%S')
+        ## Unified Formatter
+        console.setFormatter(formatter)
+        filehandler.setFormatter(formatter)
+        # Add Handlers
+        logger.addHandler(console)
+        logger.addHandler(filehandler)
+        
+        ## Logging for argument setting
+        arglist = ['# ARGUMENT LIST:',
+                   '# Output cooler path = %s' % args.output,
+                   '# Hi-C datasets = %s' % args.datasets,
+                   '# Chromosomes = %s' % args.chroms,
+                   '# Genome Assembly = %s' % args.assembly,
+                   '# Number of processes = %d' % args.nproc,
+                   '# Log file name = %s' % args.logFile
+                   ]
+        argtxt = '\n'.join(arglist)
+        logger.info('\n' + argtxt)
+        
+        from hicpeaks.utilities import Genome, balance
+        
+        try:
+            Genome(datasets=args.datasets,
+                   outfil=args.output,
+                   assembly=args.assembly,
+                   chroms=args.chroms)
+                   
+            balance(args.output,
+                    nproc=args.nproc)
+        except:
+            traceback.print_exc(file = open(args.logFile, 'a'))
+            sys.exit(1)
+
+if __name__ == '__main__':
+    run()

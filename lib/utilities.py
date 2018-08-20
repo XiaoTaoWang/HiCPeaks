@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 from cooler.util import binnify
-from cooler.io import create
+from cooler.io import create, parse_cooler_uri
 from cooler.api import Cooler
 from cooler import ice
 from multiprocess import Pool
@@ -221,28 +221,29 @@ class Genome(object):
         return cum_n
 
     
-def balance(cool_path, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
+def balance(cool_uri, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
             min_count=0, ignore_diags=1, tol=1e-5, max_iters=200):
     """
     Cooler contact matrix balancing.
     
     Parameters
     ----------
-    cool_path : str
-        Path of the cooler file.
+    cool_uri : str
+        URI of cooler group.
     nproc : int
         Number of processes. (Default: 1)
         
     """
+    cool_path, group_path = parse_cooler_uri(cool_uri)
     # pre-check the weight column
     with h5py.File(cool_path, 'r') as h5:
-        grp = h5['/']
+        grp = h5[group_path]
         if 'weight' in grp['bins']:
             del grp['bins']['weight'] # Overwrite the weight column
     
-    log.info('Balancing {0}'.format(cool_path))
+    log.info('Balancing {0}'.format(cool_uri))
     
-    clr = Cooler(cool_path)
+    clr = Cooler(cool_uri)
     
     try:
         if nproc > 1:
@@ -275,7 +276,7 @@ def balance(cool_path, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
         log.error('Storing final result. Check log to assess convergence.')
     
     with h5py.File(cool_path, 'r+') as h5:
-        grp = h5['/']
+        grp = h5[group_path]
         # add the bias column to the file
         h5opts = dict(compression='gzip', compression_opts=6)
         grp['bins'].create_dataset('weight', data=bias, **h5opts)
