@@ -128,6 +128,8 @@ class Genome(object):
             cooler_uri = '{}::{}'.format(self.outfil, res)
             create(cooler_uri, bintable, pixels, assembly=assembly, append=append, boundscheck=False,
                    triucheck=False, dupcheck=False, ensure_sorted=False)
+                   
+        log.info('Done!')
     
     def  _generator(self, byres, bin_cumnums):
 
@@ -212,7 +214,7 @@ class Genome(object):
             n_bins = int(np.ceil(clen / res))
             return n_bins+1
         
-        data = [_each(c) for c in self.chromsizes]
+        data = [_each(c) for c in self.chromsizes.index]
         n_bins = pd.Series(data, index=self.chromsizes.index)
         cum_n = n_bins.cumsum()
 
