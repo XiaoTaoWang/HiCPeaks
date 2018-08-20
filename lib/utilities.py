@@ -6,9 +6,11 @@ Created on Wed Jun 27 16:48:22 2018
 """
 
 import os, sys, tempfile, time, logging, h5py
+import numpy as np
 import pandas as pd
+from scipy import sparse
 from cooler.util import binnify
-from cooler.io import create_from_unordered, sanitize_records
+from cooler.io import create
 from cooler.api import Cooler
 from cooler import ice
 from multiprocess import Pool
@@ -46,7 +48,7 @@ class Genome(object):
         If your data are stored in NPZ format, *data_path* should point to the
         npz file. Or if your data are stored in TXT format, *data_path* should
         point to a folder, in which case all intra-chromosomal and inter-chromosomal
-        data must be stored separately (1.txt, 2.txt, ..., 1_2.txt, 1_10.txt, ...),
+        data must be stored separately (1_1.txt, 1_2.txt, ..., 2_2.txt, 2_3.txt, ...),
         and data with the same resolution should be placed in the same folder.
         
         You can generate *NPZ* files in two ways:1.By *runHiC* pipeline. *runHiC*
@@ -69,18 +71,18 @@ class Genome(object):
         (Default: ['#', 'X'])
 
     """
-
     def __init__(self, datasets, outfil, assembly='hg38', chroms=['#','X']):
 
         self.outfil = os.path.abspath(os.path.expanduser(outfil))
-        if os.path.exists(outfil):
+        if os.path.exists(self.outfil):
             log.error('Cooler file {} already exists, exit ...')
             sys.exit(1)
         self.chroms = set(chroms)
+        data = datasets
 
         ## Ready for data loading
         log.info('Fetch chromosome sizes from UCSC ...')
-        chromsizes = fetchChromSizes(assembly, chroms)
+        chromsizes = fetchChromSizes(assembly, self.chroms)
         chromlist = chromsizes.keys()
         # sort chromosome labels
         tmp = map(str, sorted(map(int, [i for i in chromlist if i.isdigit()])))
@@ -88,191 +90,134 @@ class Genome(object):
         for i in ['X','Y','M']:
             if i in nondigits:
                 tmp.append(nondigits.pop(nondigits.index(i)))
-        chromlist = tmp + sorted(nondigits)
-        lengths = [chromsizes[i] for i in chromlist]
-        self.chromsizes = pd.Series(data=lengths, index=chromlist)
-        log.info('Done!')
-
-        log.info('Generate the bin table ...')
-        self.bins = binnify(chromsizes, res)
+        self.chromlist = tmp + sorted(nondigits)
+        lengths = [chromsizes[i] for i in self.chromlist]
+        self.chromsizes = pd.Series(data=lengths, index=self.chromlist)
         log.info('Done!')
 
         ## We don't read data into memory at this point.
-        
-
-
-
-def toCooler(datasets, outfil, res, assembly, chroms=['#','X'],
-             count_type=int, cache_dir=None, delete_cache=True):
-    """
-    Create a Cooler from TXT Hi-C data.
-    
-    Parameters
-    ----------
-    outfil : str
-        Path of the output Cooler file.
-        
-    data_path : str
-        Path of original contact matrix file (in TXT format).
-        
-    res : int
-        Resolution / Bin size of the matrix in base pairs.
-    
-    assembly : str
-        Genome assembly name.
-    
-    chroms : list
-        List of chromosome labels. Only Hi-C data within the specified chromosomes
-        will be included. Specially, '#' stands for chromosomes with numerical
-        labels. If an empty list is provided, all chromosome data will be loaded.
-        (Default: ['#', 'X'])
-    
-    cache_dir : str or None
-        All intermediate or temporary files would be generated under this folder.
-        If None, the folder returned by :py:func:`tempfile.gettempdir` will be
-        used. (Default: None)
-    
-    delete_cache : Bool
-        Whether to delete temporary files when finished. (Default: True)
-    
-    """
-    outfil = os.path.abspath(os.path.expanduser(outfil))
-    if os.path.exists(outfil):
-        log.error('Cooler file {} already exists, exit ...')
-        sys.exit(1)
-        
-    ## ready for data loading
-    if cache_dir is None:
-        cache_dir = tempfile.gettempdir()
-    
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-    
-    log.info('Fetch chromosome sizes from UCSC ...')
-    chromsizes = fetchChromSizes(assembly, chroms)
-    chromlist = chromsizes.keys()
-    # sort chromosome labels
-    tmp = map(str, sorted(map(int, [i for i in chromlist if i.isdigit()])))
-    nondigits = [i for i in chromlist if not i.isdigit()]
-    for i in ['X','Y','M']:
-        if i in nondigits:
-            tmp.append(nondigits.pop(nondigits.index(i)))
-    chromlist = tmp + sorted(nondigits)
-    lengths = [chromsizes[i] for i in chromlist]
-    chromsizes = pd.Series(data=lengths, index=chromlist)
-    log.info('Done!')
-
-    log.info('Generate the bin table ...')
-    bins = binnify(chromsizes, res)
-    log.info('Done!')
-
-    
-
-    
-        
-    tl = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
-    kw = {'prefix':'pixels', 'suffix':tl, 'dir':cache_dir}
-    pixel_fil = tempfile.mktemp(**kw)
-    
-    log.info('Split raw matrix by chromosome ...')
-    
-    with open(data_path, 'rb') as source:
-        file_pool = {}
-        for line in source:
-            c1, p1, c2, p2, count = line.rstrip().split()
-            c1 = c1.lstrip('chr')
-            c2 = c2.lstrip('chr')
-            check1 = ((not chroms) or (c1.isdigit() and ('#' in chroms)) or (c1 in chroms))
-            check2 = ((not chroms) or (c2.isdigit() and ('#' in chroms)) or (c2 in chroms))
-            if (not check1) or (not check2):
-                continue
-            ip_1, ip_2 = min(int(p1)+res,chromsizes[c1]), min(int(p2)+res,chromsizes[c2])
-            key = tuple(sorted([c1,c2]))
-            if not key in file_pool:
-                tmpfil = tempfile.mktemp(**{'prefix':'_'.join(key), 'suffix':tl,
-                                            'dir':cache_dir})
-                file_pool[key] = open(tmpfil, 'wb')
-            if (c1,c2)==key:
-                if c1==c2:
-                    # make it upper triangular
-                    if ip_1 > ip_2:
-                        newline = [c2, p2, str(ip_2), c1, p1, str(ip_1), count]
-                    else:
-                        newline = [c1, p1, str(ip_1), c2, p2, str(ip_2), count]
-                else:
-                    newline = [c1, p1, str(ip_1), c2, p2, str(ip_2), count]
+        self.Map = {}
+        for res in data:
+            if data[res].endswith('.npz'):
+                self.Map[res] = {}
+                lib = np.load(data[res])
+                for i in lib.files:
+                    c1, c2 = i.split('_')
+                    check1 = ((not self.chroms) or (c1.isdigit() and '#' in self.chroms) or (c1 in self.chroms))
+                    check2 = ((not self.chroms) or (c2.isdigit() and '#' in self.chroms) or (c2 in self.chroms))
+                    if check1 and check2:
+                        self.Map[res][(c1,c2)] = lib
             else:
-                newline = [c2, p2, str(ip_2), c1, p1, str(ip_1), count]
-                
-            file_pool[key].write('\t'.join(newline)+'\n')
-        for key in file_pool:
-            file_pool[key].flush()
-            file_pool[key].close()
-    
-    log.info('Write the pixel table ...')
-    with open(pixel_fil, 'wb') as out:
-        for key in file_pool:
-            records = set()
-            with open(file_pool[key].name,'rb') as source:
-                for line in source:
-                    c1, s1, e1, c2, s2, e2, count = line.rstrip().split()
-                    # remove duplicate records
-                    if (s1,s2) in records:
-                        continue
-                    out.write(line)
-                    records.add((s1,s2))
+                self.Map[res] = self._scanFolder(data[res])
 
-    if delete_cache:
-        for key in file_pool:
-            os.remove(file_pool[key].name)
+        self._intertype = np.dtype({'names':['bin1', 'bin2', 'IF'],
+                                    'formats':[np.int, np.int, np.float]})
+        
+        log.info('Extract and save data into cooler format for each resolution ...')
+        for res in self.Map:
+            log.info('Current resolution: %dbp', res)
+            bin_cumnums = self.binCount(res)
+            log.info('Generate bin table ...')
+            bintable = binnify(self.chromsizes, res)
+            byres = self.Map[res]
+            pixels = self._generator(byres, bin_cumnums)
+            if os.path.exists(self.outfil):
+                append = True
+            else:
+                append = False
+            cooler_uri = '{}::{}'.format(self.outfil, res)
+            create(cooler_uri, bintable, pixels, assembly=assembly, append=append, boundscheck=False,
+                   triucheck=False, dupcheck=False, ensure_sorted=False)
     
+    def  _generator(self, byres, bin_cumnums):
+
+        for i in range(self.chromsizes.size):
+            for j in range(i, self.chromsizes.size):
+                c1, c2 = self.chromlist[i], self.chromlist[j]
+                if (c1,c2) in byres:
+                    ci, cj = i, j
+                else:
+                    if (c2,c1) in byres:
+                        c1, c2 = c2, c1
+                        ci, cj = j, i
+                    else:
+                        continue
+                
+                if type(byres[(c1,c2)])==str:
+                    data = np.loadtxt(byres[(c1,c2)], dtype=self._intertype)
+                else:
+                    data = byres[(c1,c2)][(c1,c2)]
+                x, y = data['bin1'], data['bin2']
+                # Fast guarantee triu matrix
+                if ci > cj:
+                    x, y = y, x
+                    ci, cj = cj, ci
+                
+                if ci != cj:
+                    tmp = sparse.csr_matrix((data['IF'], (x,y)))
+                else:
+                    tmp = sparse.csr_matrix((data['IF'], (x,y)))
+                    tmp[y,x] = tmp[x,y]
+                    tmp = sparse.triu(tmp)
+                
+                x, y = tmp.nonzero()
+                if ci > 0:
+                    x = x + bin_cumnums[ci-1]
+                if cj > 0:
+                    y = y + bin_cumnums[cj-1]
+                
+                data = tmp.data
+
+                current = pd.DataFrame({'bin1_id':x, 'bin2_id':y, 'count':data},
+                                       columns=['bin1_id', 'bin2_id', 'count'])
+
+                yield current
     
+    def _extractChrLabel(self, filename):
+        """
+        Extract chromosome pairs from file name.
+        """
+        # Full filename including path prefix
+        _, interName = os.path.split(filename)
+        c1, c2 = interName.rstrip('.txt').split('_')
     
+        return c1, c2
+
+    def _scanFolder(self, folder):
+        """
+        Create a map from chromosome pairs to file names under the folder.
+        """
+        import glob
+
+        oriFiles = glob.glob(os.path.join(folder, '*_*.txt'))
+        
+        pairs = []
+        interFiles = []
+        for i in oriFiles:
+            c1, c2 = self._extractChrLabel(i)
+            check1 = ((not self.chroms) or (c1.isdigit() and '#' in self.chroms) or (c1 in self.chroms))
+            check2 = ((not self.chroms) or (c2.isdigit() and '#' in self.chroms) or (c2 in self.chroms))
+            if check1 and check2:
+                pairs.append((c1,c2))
+                interFiles.append(i)
+
+        Map = dict(zip(pairs, interFiles))
+        
+        return Map
     
-    
-    log.info('Create the Cooler file ...')
-    # output fields
-    output_field_names = ['bin1_id', 'bin2_id', 'count']
-    output_field_dtypes = {'bin1_id': int, 'bin2_id': int, 'count': count_type}
-    
-    # input fields
-    input_field_names = ['chrom1', 'start1', 'end1', 'chrom2', 'start2', 'end2', 'count']
-    input_field_dtypes = {
-            'chrom1': str, 'start1': int, 'end1': int,
-            'chrom2': str, 'start2': int, 'end2': int,
-            'count': count_type,
-    }
-    input_field_numbers = {
-            'chrom1': 0, 'start1': 1, 'end1': 2,
-            'chrom2': 3, 'start2': 4, 'end2': 5,
-            'count': 6,
-    }
-    
-    pipeline = sanitize_records(bins, schema='bg2', is_one_based=False,
-                                tril_action='reflect', sort=True,
-                                sided_fields=('end',))
-    
-    reader = pd.read_table(
-                    pixel_fil,
-                    usecols=[input_field_numbers[name] for name in input_field_names],
-                    names=input_field_names,
-                    dtype=input_field_dtypes,
-                    iterator=True,
-                    chunksize=int(1e7))
-    
-    create_from_unordered(
-            outfil,
-            bins,
-            map(pipeline, reader),
-            columns=output_field_names,
-            dtypes=output_field_dtypes,
-            assembly=assembly,
-            mergebuf=int(1e7),
-            delete_temp=True,
-            ensure_sorted=False)
-    
-    if delete_cache:
-        os.remove(pixel_fil)
+    def binCount(self, res):
+
+        def _each(chrom):
+            clen = self.chromsizes[chrom]
+            n_bins = int(np.ceil(clen / res))
+            return n_bins+1
+        
+        data = [_each(c) for c in self.chromsizes]
+        n_bins = pd.Series(data, index=self.chromsizes.index)
+        cum_n = n_bins.cumsum()
+
+        return cum_n
+
     
 def balance(cool_path, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
             min_count=0, ignore_diags=1, tol=1e-5, max_iters=200):
