@@ -94,14 +94,14 @@ Overview
 
   A CPU-based python implementation for BH-FDR algorithm. Rao et al states in their supplementary material that
   this algorithm is robust enough to obtain all main results of their paper. Compared with HICCUPS, BH-FDR doesn't use
-  :math:`\lambda-chunk` in multiple hypothesis test, and only considers the background Donut region when calculating the
+  :math:`\lambda`-chunk in multiple hypothesis test, and only considers the background Donut region when calculating the
   expected values. Here, *pyBHFDR* follows the algorithm pipelines of [1]_ faithfully except that it doesn't implement
   the greedy clustering algorithm for original peak pixels.
 
 - pyHICCUPS
 
   A CPU-based python implementation for HICCUPS algorithm. Besides the donut region, HICCUPS also considers the
-  lower-left, vertical and horizontal backgrounds when calculating the expected values. :math:`\lambda-chunk` is used
+  lower-left, vertical and horizontal backgrounds when calculating the expected values. :math:`\lambda`-chunk is used
 
 
 
