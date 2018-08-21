@@ -91,12 +91,12 @@ def run():
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
-                   '# Output cooler path = %s' % args.output,
-                   '# Hi-C datasets = %s' % args.datasets,
-                   '# Chromosomes = %s' % args.chroms,
-                   '# Genome Assembly = %s' % args.assembly,
-                   '# Number of processes = %d' % args.nproc,
-                   '# Log file name = %s' % args.logFile
+                   '# Output cooler path = {}'.format(args.output),
+                   '# Hi-C datasets = {}'.format(args.datasets),
+                   '# Chromosomes = {}'.format(args.chroms),
+                   '# Genome Assembly = {}'.format(args.assembly),
+                   '# Number of processes = {}'.format(args.nproc),
+                   '# Log file name = {}'.format(args.logFile)
                    ]
         argtxt = '\n'.join(arglist)
         logger.info('\n' + argtxt)

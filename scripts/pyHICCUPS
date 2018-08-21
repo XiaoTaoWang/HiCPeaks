@@ -78,24 +78,25 @@ def run():
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
-                   '# output file prefix = %s' % args.output,
-                   '# Cooler URI = %s' % args.path,
-                   '# chromosomes = %s' % args.chroms,
-                   '# Peak window width = %s' % args.pw,
-                   '# Donut width = %s' % args.ww,
-                   '# Maximum donut width = %s' % args.maxww,
-                   '# Significant Level = %s' % args.siglevel,
-                   '# Genomic distance range = %s' % [args.ww * args.resolution, args.maxapart]
+                   '# Output file prefix = {}'.format(args.output),
+                   '# Cooler URI = {}'.format(args.path),
+                   '# Chromosomes = {}'.format(args.chroms),
+                   '# Peak window width = {}'.format(args.pw),
+                   '# Donut width = {}'.format(args.ww),
+                   '# Maximum donut width = {}'.format(args.maxww),
+                   '# Significant Level = {}'.format(args.siglevel),
+                   '# Maximum Genomic distance = {}'.format(args.maxapart)
                    ]
         
         argtxt = '\n'.join(arglist)
-        logger.info('\n' + argtxt)
+        logger.info('\n'+argtxt)
         
         # Package Dependencies
         import cooler
         
         logger.info('Loading Hi-C data ...')
         Lib = cooler.Cooler(args.path)
+        resolution = Lib.binsize
         
         logger.info('Calling Peaks ...')
         OF = open('.'.join([args.output, 'peaks', 'txt']), 'wb')
@@ -103,44 +104,44 @@ def run():
                           'LL-Enrichment', 'LL-pvalue', 'LL-qvalue']) + '\n'
         OF.write(head)
         
-        for key in Lib.files:
+        for key in Lib.chromnames:
             if ((not args.chroms) or (key.isdigit() and '#' in args.chroms) or (key in args.chroms)):
                 logger.info('Chromosome %s ...', key)
-                sparseH = Lib[key].reshape(1)[0]
-                triuH = sparseH.toarray()
-                H = triuH + triuH.T - np.diag(triuH.diagonal()) # Symmetric Matrix
-                del sparseH, triuH # Release Memory
-                logger.info('Perform ICE ...')
-                cHeatMap, biases = completeIC(H, returnBias = True)
-                logger.info('Done!')
+                H = Lib.matrix(balance=False, sparse=True).fetch(key)
+                cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
                 
                 logger.info('Customize Sparse Matrix ...')
                 chromLen = H.shape[0]
-                num = args.maxapart // args.resolution + args.maxww + 1
-                Diags = [np.diagonal(H, i) for i in np.arange(num)]
-                M = sparse.diags(Diags, np.arange(num), format = 'csr')
+                num = args.maxapart // resolution + args.maxww + 1
+                Diags = [H.diagonal(i) for i in np.arange(num)]
+                M = sparse.diags(Diags, np.arange(num), format='csr')
                 x = np.arange(args.ww, num)
                 y = []
                 cDiags = []
                 for i in x:
-                    diag = np.diagonal(cHeatMap, i)
+                    diag = cHeatMap.diagonal(i)
                     y.append(diag.mean())
                     cDiags.append(diag)
-                cM = sparse.diags(cDiags, x, format = 'csr')
-                IR = isotonic.IsotonicRegression(increasing = 'auto')
+                cM = sparse.diags(cDiags, x, format='csr')
+                IR = isotonic.IsotonicRegression(increasing='auto')
                 IR.fit(x, y)
                 
                 del H, cHeatMap
+
+                tmp = Lib.bins().fetch(key)['weight'].values
+                mask = np.logical_not(tmp==0)
+                biases = np.zeros_like(tmp)
+                biases[mask] = 1/tmp[mask]
                 
                 Donuts, LL = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num,
-                                     pw = args.pw, ww = args.ww, sig = args.siglevel,
-                                     maxww = args.maxww, maxapart = args.maxapart,
-                                     res = args.resolution)
+                                     pw=args.pw, ww=args.ww, sig=args.siglevel,
+                                     maxww=args.maxww, maxapart=args.maxapart,
+                                     res=resolution)
                                                                 
                 for i in Donuts:
-                    lineFormat = '%s\t%d\t%d\t%.4g\t%.4g\t%.4g\t%.4g\t%.4g\t%.4g\t%.4g\n'
+                    lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\n'
                     contents = (key,) + i + Donuts[i] + LL[i][1:]
-                    line = lineFormat % contents
+                    line = lineFormat.format(*contents)
                     OF.write(line)
                     
         OF.flush()
