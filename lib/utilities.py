@@ -93,23 +93,29 @@ class Genome(object):
         self.chromlist = tmp + sorted(nondigits)
         lengths = [chromsizes[i] for i in self.chromlist]
         self.chromsizes = pd.Series(data=lengths, index=self.chromlist)
-        log.info('Done!')
+        log.info('Done')
 
         ## We don't read data into memory at this point.
+        ## Waiting for more robust conditions, here I assume there is no sign '_' in any chromosome labels.
         self.Map = {}
         for res in data:
             if data[res].endswith('.npz'):
                 self.Map[res] = {}
                 lib = np.load(data[res])
                 for i in lib.files:
-                    tmp = i.split('_')
-                    if len(tmp)!=2:
-                        continue
-                    c1, c2 = tmp
-                    check1 = ((not self.chroms) or (c1.isdigit() and '#' in self.chroms) or (c1 in self.chroms))
-                    check2 = ((not self.chroms) or (c2.isdigit() and '#' in self.chroms) or (c2 in self.chroms))
-                    if check1 and check2:
+                    if (not '_' in i) and ((not self.chroms) or (i.isdigit() and '#' in self.chroms) or (i in self.chroms)):
+                        # Compatible with TADLib and old version of runHiC
+                        c1 = c2 = i
                         self.Map[res][(c1,c2)] = lib
+                    else:
+                        tmp = i.split('_')
+                        if len(tmp)!=2:
+                            continue
+                        c1, c2 = tmp
+                        check1 = ((not self.chroms) or (c1.isdigit() and '#' in self.chroms) or (c1 in self.chroms))
+                        check2 = ((not self.chroms) or (c2.isdigit() and '#' in self.chroms) or (c2 in self.chroms))
+                        if check1 and check2:
+                            self.Map[res][(c1,c2)] = lib
             else:
                 self.Map[res] = self._scanFolder(data[res])
 
@@ -131,8 +137,7 @@ class Genome(object):
             cooler_uri = '{}::{}'.format(self.outfil, res)
             create(cooler_uri, bintable, pixels, assembly=assembly, append=append, boundscheck=False,
                    triucheck=False, dupcheck=False, ensure_sorted=False)
-                   
-        log.info('Done!')
+            
     
     def  _generator(self, byres, bin_cumnums):
 
@@ -147,8 +152,6 @@ class Genome(object):
                         ci, cj = j, i
                     else:
                         continue
-                
-                log.debug('Current chromosome pairs: {}-{}'.format(c1,c2))
                 
                 if type(byres[(c1,c2)])==str:
                     data = np.loadtxt(byres[(c1,c2)], dtype=self._intertype)

@@ -78,7 +78,7 @@ def run():
                                                            backupCount=5)
         # Set level for Handlers
         console.setLevel('INFO')
-        filehandler.setLevel('DEBUG')
+        filehandler.setLevel('INFO')
         # Customizing Formatter
         formatter = logging.Formatter(fmt = '%(name)-25s %(levelname)-7s @ %(asctime)s: %(message)s',
                                       datefmt = '%m/%d/%y %H:%M:%S')
@@ -111,6 +111,8 @@ def run():
             for res in args.datasets:
                 cooler_uri = '{}::{}'.format(cooler_path, res)
                 balance(cooler_uri, nproc=args.nproc)
+                logger.info('Done')
+            
         except:
             traceback.print_exc(file = open(args.logFile, 'a'))
             sys.exit(1)
