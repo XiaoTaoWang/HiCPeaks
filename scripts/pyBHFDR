@@ -23,26 +23,24 @@ def getargs():
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
     group_1.add_argument('-p', '--path', default = '.',
-                         help = 'Path to Hi-C data')
-    group_1.add_argument('-R', '--resolution', default = 10000, type = int,
-                         help = 'Resolution of the binned data')
+                         help = 'URI string pointing to a cooler under specific resolution.')
     group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
-                         help = 'Which chromosomes to read. Specially, "#" stands'
-                         ' for chromosomes with numerical labels. "--chroms" with zero argument'
-                         ' will generate an empty list, in which case all chromosome data will'
-                         ' be loaded.')
+                        help = 'List of chromosome labels. Only Hi-C data within the specified '
+                        'chromosomes will be included. Specially, "#" stands for chromosomes '
+                        'with numerical labels. "--chroms" with zero argument will include '
+                        'all chromosome data.')
     
     ## About the algorithm
     group_2 = parser.add_argument_group(title = 'Algorithm Parameters:')
     group_2.add_argument('--pw', type = int, default = 2, help = 'Width of the interaction '
                          'region surrounding the peak. According to experience, we set it'
                          ' to 1 at 20 kb, 2 at 10 kb, and 4 at 5 kb.')
-    group_2.add_argument('--ww', type = int, default = 5, help = 'The size of the donut '
+    group_2.add_argument('--ww', type = int, default = 5, help = 'Width of the donut '
                          'sampled. Set it to 3 at 20 kb, 5 at 10 kb, and 7 at 5 kb.')
-    group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut size.')
+    group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.05, help = 'Significant Level.')
     group_2.add_argument('--maxapart', type = int, default = 2000000, help = 'Maximum genomic'
-                         ' distance between two loci.')
+                         ' distance between two involved loci.')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -80,67 +78,68 @@ def run():
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
-                   '# output file prefix = %s' % args.output,
-                   '# HiC Data Path = %s' % args.path,
-                   '# chromosomes = %s' % args.chroms,
-                   '# data resolution = %s' % args.resolution,
-                   '# Peak window width = %s' % args.pw,
-                   '# Donut size = %s' % args.ww,
-                   '# Maximum donut size = %s' % args.maxww,
-                   '# Significant Level = %s' % args.siglevel,
-                   '# Genomic distance range = %s' % [args.ww * args.resolution, args.maxapart]
+                   '# Output file prefix = {}'.format(args.output),
+                   '# Cooler URI = {}'.format(args.path),
+                   '# Chromosomes = {}'.format(args.chroms),
+                   '# Peak window width = {}'.format(args.pw),
+                   '# Donut width = {}'.format(args.ww),
+                   '# Maximum donut width = {}'.format(args.maxww),
+                   '# Significant Level = {}'.format(args.siglevel),
+                   '# Maximum Genomic distance = {}'.format(args.maxapart)
                    ]
         
         argtxt = '\n'.join(arglist)
-        logger.info('\n' + argtxt)
+        logger.info('\n'+argtxt)
         
         # Package Dependencies
-        from mirnylib.numutils import completeIC
+        import cooler
         
-        logger.info('Locating Hi-C data ...')
-        Lib = np.load(args.path)
+        logger.info('Loading Hi-C data ...')
+        Lib = cooler.Cooler(args.path)
+        resolution = Lib.binsize
         
         logger.info('Calling Peaks ...')
         OF = open('.'.join([args.output, 'peaks', 'txt']), 'wb')
         head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'IF', 'Fold-Enrichment', 'pvalue', 'qvalue']) + '\n'
         OF.write(head)
         
-        for key in Lib.files:
+        for key in Lib.chromnames:
             if ((not args.chroms) or (key.isdigit() and '#' in args.chroms) or (key in args.chroms)):
                 logger.info('Chromosome %s ...', key)
-                sparseH = Lib[key].reshape(1)[0]
-                triuH = sparseH.toarray()
-                H = triuH + triuH.T - np.diag(triuH.diagonal()) # Symmetric Matrix
-                del sparseH, triuH # Release Memory
-                logger.info('Perform ICE ...')
-                cHeatMap, biases = completeIC(H, returnBias = True)
-                logger.info('Done!')
+                H = Lib.matrix(balance=False, sparse=True).fetch(key)
+                cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
                 
                 logger.info('Customize Sparse Matrix ...')
                 chromLen = H.shape[0]
-                num = args.maxapart // args.resolution + args.maxww + 1
-                Diags = [np.diagonal(H, i) for i in np.arange(num)]
-                M = sparse.diags(Diags, np.arange(num), format = 'csr')
+                num = args.maxapart // resolution + args.maxww + 1
+                Diags = [H.diagonal(i) for i in np.arange(num)]
+                M = sparse.diags(Diags, np.arange(num), format='csr')
                 x = np.arange(args.ww, num)
                 y = []
                 cDiags = []
                 for i in x:
-                    diag = np.diagonal(cHeatMap, i)
+                    diag = cHeatMap.diagonal(i)
                     y.append(diag.mean())
                     cDiags.append(diag)
-                cM = sparse.diags(cDiags, x, format = 'csr')
-                IR = isotonic.IsotonicRegression(increasing = 'auto')
+                cM = sparse.diags(cDiags, x, format='csr')
+                IR = isotonic.IsotonicRegression(increasing='auto')
                 IR.fit(x, y)
                 
                 del H, cHeatMap
+
+                tmp = Lib.bins().fetch(key)['weight'].values
+                mask = np.logical_not(tmp==0)
+                biases = np.zeros_like(tmp)
+                biases[mask] = 1/tmp[mask]
                 
                 xpos, ypos, Ovalues, Fold, pvalues, qvalues = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num,
                                                                       pw = args.pw, ww = args.ww, sig = args.siglevel,
                                                                       maxww = args.maxww, maxapart = args.maxapart,
-                                                                      res = args.resolution)
+                                                                      res = resolution)
                                                                 
                 for i in xrange(xpos.size):
-                    line = '%s\t%d\t%d\t%.4g\t%.4g\t%.4g\t%.4g\n' % (key, xpos[i] * args.resolution, ypos[i] * args.resolution, Ovalues[i], Fold[i], pvalues[i], qvalues[i])
+                    lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\n'
+                    line = lineFormat.format(key, xpos[i]*resolution, ypos[i]*resolution, Ovalues[i], Fold[i], pvalues[i], qvalues[i])
                     OF.write(line)
                     
         OF.flush()
