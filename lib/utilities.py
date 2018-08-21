@@ -70,14 +70,18 @@ class Genome(object):
         labels. If an empty list is provided, all chromosome data will be loaded.
         (Default: ['#', 'X'])
 
+    onlyIntra : bool
+        If specified, only include intra-chromosomal data.
+
     """
-    def __init__(self, datasets, outfil, assembly='hg38', chroms=['#','X']):
+    def __init__(self, datasets, outfil, assembly='hg38', chroms=['#','X'], onlyIntra=True):
 
         self.outfil = os.path.abspath(os.path.expanduser(outfil))
         if os.path.exists(self.outfil):
             log.error('Cooler file {} already exists, exit ...')
             sys.exit(1)
         self.chroms = set(chroms)
+        self.onlyIntra = onlyIntra
         data = datasets
 
         ## Ready for data loading
@@ -129,7 +133,7 @@ class Genome(object):
             log.info('Generate bin table ...')
             bintable = binnify(self.chromsizes, res)
             byres = self.Map[res]
-            pixels = self._generator(byres, bin_cumnums)
+            pixels = self._generator(byres, bin_cumnums, self.onlyIntra)
             if os.path.exists(self.outfil):
                 append = True
             else:
@@ -139,11 +143,14 @@ class Genome(object):
                    triucheck=False, dupcheck=False, ensure_sorted=False)
             
     
-    def  _generator(self, byres, bin_cumnums):
+    def  _generator(self, byres, bin_cumnums, onlyIntra):
 
         for i in range(self.chromsizes.size):
             for j in range(i, self.chromsizes.size):
                 c1, c2 = self.chromlist[i], self.chromlist[j]
+                if onlyIntra:
+                    if c1!=c2:
+                        continue
                 if (c1,c2) in byres:
                     ci, cj = i, j
                 else:
