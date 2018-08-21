@@ -44,7 +44,7 @@ def getargs():
                                and corresponding data path. Refer to the online documentation
                                for more details.''')
     parser.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
-                        help = 'List of chromosome labels. Only HiC data within the specified '
+                        help = 'List of chromosome labels. Only Hi-C data within the specified '
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
                         'with numerical labels. "--chroms" with zero argument will include '
                         'all chromosome data.')
