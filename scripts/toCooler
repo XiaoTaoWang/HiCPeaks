@@ -104,13 +104,13 @@ def run():
         from hicpeaks.utilities import Genome, balance
         
         try:
-            Genome(datasets=args.datasets,
-                   outfil=args.output,
-                   assembly=args.assembly,
-                   chroms=args.chroms)
-                   
-            balance(args.output,
-                    nproc=args.nproc)
+            cooler_path = os.path.abspath(os.path.expanduser(args.output))
+            Genome(datasets=args.datasets, outfil=args.output,
+                   assembly=args.assembly, chroms=args.chroms)
+            
+            for res in args.datasets:
+                cooler_uri = '{}::{}'.format(cooler_path, res)
+                balance(cooler_uri, nproc=args.nproc)
         except:
             traceback.print_exc(file = open(args.logFile, 'a'))
             sys.exit(1)
