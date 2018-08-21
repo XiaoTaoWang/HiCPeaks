@@ -87,7 +87,7 @@ def run():
                    '# Maximum donut width = {}'.format(args.maxww),
                    '# Significant Level = {}'.format(args.siglevel),
                    '# Maximum Genomic distance = {}'.format(args.maxapart),
-                   '# Number of Processes = {}'.format(args.nproc),
+                   '# Number of Processes = {}'.format(args.nproc)
                    ]
         
         argtxt = '\n'.join(arglist)
