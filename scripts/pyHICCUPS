@@ -41,6 +41,7 @@ def getargs():
     group_2.add_argument('--siglevel', type = float, default = 0.1, help = 'Significant Level.')
     group_2.add_argument('--maxapart', type = int, default = 5000000, help = 'Maximum genomic'
                          ' distance between two involved loci.')
+    group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -85,7 +86,8 @@ def run():
                    '# Donut width = {}'.format(args.ww),
                    '# Maximum donut width = {}'.format(args.maxww),
                    '# Significant Level = {}'.format(args.siglevel),
-                   '# Maximum Genomic distance = {}'.format(args.maxapart)
+                   '# Maximum Genomic distance = {}'.format(args.maxapart),
+                   '# Number of Processes = {}'.format(args.nproc),
                    ]
         
         argtxt = '\n'.join(arglist)
@@ -93,10 +95,51 @@ def run():
         
         # Package Dependencies
         import cooler
+        from multiprocess import Pool
+
+        def worker(tuple_arg):
+            Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
+            logger.info('Chromosome %s ...', key)
+            H = Lib.matrix(balance=False, sparse=True).fetch(key)
+            cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
+            # Customize Sparse Matrix ...
+            chromLen = H.shape[0]
+            num = args.maxapart // resolution + args.maxww + 1
+            Diags = [H.diagonal(i) for i in np.arange(num)]
+            M = sparse.diags(Diags, np.arange(num), format='csr')
+            x = np.arange(args.ww, num)
+            y = []
+            cDiags = []
+            for i in x:
+                diag = cHeatMap.diagonal(i)
+                y.append(diag.mean())
+                cDiags.append(diag)
+            cM = sparse.diags(cDiags, x, format='csr')
+            IR = isotonic.IsotonicRegression(increasing='auto')
+            IR.fit(x, y)
+
+            del H, cHeatMap
+
+            tmp = Lib.bins().fetch(key)['weight'].values
+            mask = np.logical_not(tmp==0)
+            biases = np.zeros_like(tmp)
+            biases[mask] = 1/tmp[mask]
+
+            Donuts, LL = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, key,
+                                pw=pw, ww=ww, sig=siglevel, maxww=maxww, maxapart=maxapart,
+                                res=resolution)
+            
+            return key, Donuts, LL
         
         logger.info('Loading Hi-C data ...')
         Lib = cooler.Cooler(args.path)
         resolution = Lib.binsize
+
+        if args.nproc == 1:
+            map_ = map
+        else:
+            pool = Pool(args.nproc)
+            map_ = pool.map
         
         logger.info('Calling Peaks ...')
         OF = open('.'.join([args.output, 'peaks', 'txt']), 'wb')
@@ -104,53 +147,27 @@ def run():
                           'LL-Enrichment', 'LL-pvalue', 'LL-qvalue']) + '\n'
         OF.write(head)
         
+        Params = []
         for key in Lib.chromnames:
             if ((not args.chroms) or (key.isdigit() and '#' in args.chroms) or (key in args.chroms)):
-                logger.info('Chromosome %s ...', key)
-                H = Lib.matrix(balance=False, sparse=True).fetch(key)
-                cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
-                
-                logger.info('Customize Sparse Matrix ...')
-                chromLen = H.shape[0]
-                num = args.maxapart // resolution + args.maxww + 1
-                Diags = [H.diagonal(i) for i in np.arange(num)]
-                M = sparse.diags(Diags, np.arange(num), format='csr')
-                x = np.arange(args.ww, num)
-                y = []
-                cDiags = []
-                for i in x:
-                    diag = cHeatMap.diagonal(i)
-                    y.append(diag.mean())
-                    cDiags.append(diag)
-                cM = sparse.diags(cDiags, x, format='csr')
-                IR = isotonic.IsotonicRegression(increasing='auto')
-                IR.fit(x, y)
-                
-                del H, cHeatMap
+                Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.maxww, args.maxapart, resolution))
+        
+        results = map_(worker, Params)
 
-                tmp = Lib.bins().fetch(key)['weight'].values
-                mask = np.logical_not(tmp==0)
-                biases = np.zeros_like(tmp)
-                biases[mask] = 1/tmp[mask]
-                
-                Donuts, LL = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num,
-                                     pw=args.pw, ww=args.ww, sig=args.siglevel,
-                                     maxww=args.maxww, maxapart=args.maxapart,
-                                     res=resolution)
-                                                                
-                for i in Donuts:
-                    lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\n'
-                    contents = (key,) + i + Donuts[i] + LL[i][1:]
-                    line = lineFormat.format(*contents)
-                    OF.write(line)
+        for key, Donuts, LL in results:
+            for i in Donuts:
+                lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\n'
+                contents = (key,) + i + Donuts[i] + LL[i][1:]
+                line = lineFormat.format(*contents)
+                OF.write(line)        
                     
         OF.flush()
         OF.close()
                             
         logger.info('Done!')
 
-def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig = 0.05, maxww = 20,
-            maxapart = 2000000, res = 10000):
+def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, sig=0.05, maxww=20,
+            maxapart=2000000, res=10000):
     
     # Necessary Modules
     from scipy.stats import poisson
@@ -245,14 +262,14 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
         bSV[fl] = np.zeros(xi.size)
         bEV[fl] = np.zeros(xi.size)
     
-    logger.info('Observed Contact Number: %d', xi.size)
+    logger.info('Chrom:{0}, Observed Contact Number: {1}'.format(chrom, xi.size))
     
     RefIdx = np.arange(xi.size)
     RefMask = np.ones_like(xi, dtype = bool)
     
     iniNum = xi.size
     
-    logger.info('Two local neighborhoods, two expected matrices ...')
+    logger.info('Chrom:{0}, Two local neighborhoods, two expected matrices ...'.format(chrom))
     for w in range(ww, maxww + 1):
         ws = 2 * w + 1
         bS = {}; bE = {}
@@ -260,7 +277,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
             bS[fl] = sparse.csr_matrix((chromLen, chromLen))
             bE[fl] = sparse.csr_matrix((chromLen, chromLen))
         Reads = sparse.csr_matrix((chromLen, chromLen))
-        logger.info('    Current window width: %s' % w)
+        logger.info('Chrom:{0},    Current window width: {1}'.format(chrom, w))
         P1 = set([(i,j) for i in range(w-pw, ps+w-pw) for j in range(w-pw, ps+w-pw)]) # Center Peak Region
         P_1 = set([(i,j) for i in range(w+1, ws) for j in range(w)])
         P_2 = set([(i,j) for i in range(w+1, ps+w-pw) for j in range(w-pw, w)])
@@ -281,9 +298,9 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
         Tyi = yi[RefIdx]
         RNums = np.array(Reads[Txi, Tyi]).ravel()
         EIdx = RefIdx[RNums >= 16]
-        logger.info('    Valid Contact Number: %d', EIdx.size)
+        logger.info('Chrom:{0},    Valid Contact Number: {1}'.format(chrom, EIdx.size))
         Valid_Ratio = EIdx.size/float(iniNum)
-        logger.info('    Valid Contact Ratio: %.3f', Valid_Ratio)
+        logger.info('Chrom:{0},    Valid Contact Ratio: {1:.3f}'.format(chrom, Valid_Ratio))
         Exi = xi[EIdx]
         Eyi = yi[EIdx]
         for fl in flocals:
@@ -295,11 +312,11 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
         iniNum = RefIdx.size
         
         if Valid_Ratio < 0.1:
-            logger.info('    Ratio of valid contact is too small, break the loop ...')
+            logger.info('Chrom:{0},    Ratio of valid contact is too small, break the loop ...'.format(chrom))
             break
         
-        logger.info('    Continue ...')
-        logger.info('    %d Contacts will get into next loop ...', RefIdx.size)
+        logger.info('Chrom:{0},    Continue ...'.format(chrom))
+        logger.info('Chrom:{0},    {1} Contacts will get into next loop ...'.format(chrom, RefIdx.size))
     
     RefMask[RefIdx] = False
     
@@ -320,13 +337,13 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
     for fl in flocals:
         cEM[fl] = EM.multiply(bR[fl])
     
-    logger.info('Poisson Models and Benjamini-Hochberg Correcting for lambda chunks ...')
+    logger.info('Chrom:{0}, Poisson Models and Benjamini-Hochberg Correcting for lambda chunks ...'.format(chrom))
     Description = {'K': 'Donut backgrounds', 'Y': 'Lower-left backgrounds'}
     xpos = {}; ypos = {}; Ovalues = {}; Evalues = {}
     Fold = {}; pvalues = {}; qvalues = {}
     gaps = set(np.where(np.array(M.sum(axis=1)).ravel() == 0)[0])
     for fl in flocals:
-        logger.info('    %s ...', Description[fl])
+        logger.info('Chrom:{0},    {1} ...'.format(chrom, Description[fl]))
         xi, yi = cEM[fl].nonzero()
         Evalues[fl] = np.array(cEM[fl][xi, yi]).ravel() * biases[xi] * biases[yi]
         Mask = (Evalues[fl] > 0)
@@ -335,27 +352,27 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
         yi = yi[Mask]
         Ovalues[fl] = np.array(M[xi, yi]).ravel()
         Fold[fl] =  Ovalues[fl] / Evalues[fl]
-        logger.info('    Valid contact number: %d', xi.size)
+        logger.info('Chrom:{0},    Valid contact number: {1}'.format(chrom, xi.size))
         
         pvalue = np.ones(xi.size)
         qvalue = np.ones(xi.size)
         
-        logger.info('    Lambda chunking ...')
+        logger.info('Chrom:{0},    Lambda chunking ...'.format(chrom))
         chunks = lambdachunk(Evalues[fl])
-        logger.info('    Number of chunks: %d', len(chunks))
+        logger.info('Chrom:{0},    Number of chunks: {1}'.format(chrom, len(chunks)))
         for chunk in chunks:
-            logger.debug('        lv: %.4g, rv: %.4g, Num: %d', chunk[0], chunk[1], chunk[2].size)
+            logger.debug('Chrom:{0},        lv: {1:.4g}, rv: {2:.4g}, Num: {3}'.format(chrom, chunk[0], chunk[1], chunk[2].size))
             if chunk[2].size > 0:
                 Poiss = poisson(chunk[1])
-                logger.debug('        Assign P values ...')
+                logger.debug('Chrom:{0},        Assign P values ...'.format(chrom))
                 chunkP = 1 - Poiss.cdf(Ovalues[fl][chunk[2]])
                 pvalue[chunk[2]] = chunkP
-                logger.debug('        Multiple testing ...')
+                logger.debug('Chrom:{0},        Multiple testing ...'.format(chrom))
                 cResults = multipletests(chunkP, alpha = sig, method = 'fdr_bh')
                 cP = cResults[1] # Corrected Pvalue
                 qvalue[chunk[2]] = cP
             else:
-                logger.debug('        Skipping ...')
+                logger.debug('Chrom:{0},        Skipping ...'.format(chrom))
         
         reject = qvalue <= sig
         qvalue = qvalue[reject]
@@ -366,7 +383,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
         xi = xi[reject]
         yi = yi[reject]
         
-        logger.info('    Remove Gap Effects ...')
+        logger.info('Chrom:{0},    Remove Gap Effects ...'.format(chrom))
         
         if len(gaps) > 0:
             fIdx = []
@@ -395,7 +412,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, pw = 2, ww = 5, sig
         pvalues[fl] = pvalue
         qvalues[fl] = qvalue
     
-    logger.info('Combine two local filters ...')
+    logger.info('Chrom:{0}, Combine two local filters ...'.format(chrom))
     
     preDonuts = dict(zip(zip(xpos['K']*res, ypos['K']*res), zip(Ovalues['K'], Fold['K'], pvalues['K'], qvalues['K'])))
     preLL = dict(zip(zip(xpos['Y']*res, ypos['Y']*res), zip(Ovalues['Y'], Fold['Y'], pvalues['Y'], qvalues['Y'])))
