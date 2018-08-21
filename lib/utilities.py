@@ -102,7 +102,10 @@ class Genome(object):
                 self.Map[res] = {}
                 lib = np.load(data[res])
                 for i in lib.files:
-                    c1, c2 = i.split('_')
+                    tmp = i.split('_')
+                    if len(tmp)!=2:
+                        continue
+                    c1, c2 = tmp
                     check1 = ((not self.chroms) or (c1.isdigit() and '#' in self.chroms) or (c1 in self.chroms))
                     check2 = ((not self.chroms) or (c2.isdigit() and '#' in self.chroms) or (c2 in self.chroms))
                     if check1 and check2:
@@ -155,10 +158,13 @@ class Genome(object):
                     x, y = y, x
                     ci, cj = cj, ci
                 
+                xLen = x.max() + 1
+                yLen = y.max() + 1
                 if ci != cj:
-                    tmp = sparse.csr_matrix((data['IF'], (x,y)))
+                    tmp = sparse.csr_matrix((data['IF'], (x,y)), shape=(xLen, yLen))
                 else:
-                    tmp = sparse.csr_matrix((data['IF'], (x,y)))
+                    Len = max(xLen, yLen)
+                    tmp = sparse.csr_matrix((data['IF'], (x,y)), shape=(Len, Len))
                     tmp[y,x] = tmp[x,y]
                     tmp = sparse.triu(tmp)
                 
@@ -174,16 +180,6 @@ class Genome(object):
                                        columns=['bin1_id', 'bin2_id', 'count'])
 
                 yield current
-    
-    def _extractChrLabel(self, filename):
-        """
-        Extract chromosome pairs from file name.
-        """
-        # Full filename including path prefix
-        _, interName = os.path.split(filename)
-        c1, c2 = interName.rstrip('.txt').split('_')
-    
-        return c1, c2
 
     def _scanFolder(self, folder):
         """
@@ -196,7 +192,11 @@ class Genome(object):
         pairs = []
         interFiles = []
         for i in oriFiles:
-            c1, c2 = self._extractChrLabel(i)
+            _, interName = os.path.split(i) # Full filename including path prefix
+            tmp = interName.rstrip('.txt').split('_')
+            if len(tmp)!=2:
+                continue
+            c1, c2 = tmp
             check1 = ((not self.chroms) or (c1.isdigit() and '#' in self.chroms) or (c1 in self.chroms))
             check2 = ((not self.chroms) or (c2.isdigit() and '#' in self.chroms) or (c2 in self.chroms))
             if check1 and check2:
