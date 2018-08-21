@@ -164,7 +164,6 @@ class Genome(object):
                 yLen = y.max() + 1
                 if ci != cj:
                     tmp = sparse.csr_matrix((data['IF'], (x,y)), shape=(xLen, yLen))
-                    tmp = sparse.lil_matrix(tmp)
                 else:
                     Len = max(xLen, yLen)
                     tmp = sparse.csr_matrix((data['IF'], (x,y)), shape=(Len, Len))

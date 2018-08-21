@@ -78,7 +78,7 @@ def run():
                                                            backupCount=5)
         # Set level for Handlers
         console.setLevel('INFO')
-        filehandler.setLevel('INFO')
+        filehandler.setLevel('DEBUG')
         # Customizing Formatter
         formatter = logging.Formatter(fmt = '%(name)-25s %(levelname)-7s @ %(asctime)s: %(message)s',
                                       datefmt = '%m/%d/%y %H:%M:%S')
