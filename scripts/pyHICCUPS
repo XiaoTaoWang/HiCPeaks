@@ -23,26 +23,24 @@ def getargs():
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
     group_1.add_argument('-p', '--path', default = '.',
-                         help = 'Path to Hi-C data')
-    group_1.add_argument('-R', '--resolution', default = 10000, type = int,
-                         help = 'Resolution of the binned data')
+                         help = 'URI string pointing to a cooler under specific resolution.')
     group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
-                         help = 'Which chromosomes to read. Specially, "#" stands'
-                         ' for chromosomes with numerical labels. "--chroms" with zero argument'
-                         ' will generate an empty list, in which case all chromosome data will'
-                         ' be loaded.')
+                        help = 'List of chromosome labels. Only Hi-C data within the specified '
+                        'chromosomes will be included. Specially, "#" stands for chromosomes '
+                        'with numerical labels. "--chroms" with zero argument will include '
+                        'all chromosome data.')
     
     ## About the algorithm
     group_2 = parser.add_argument_group(title = 'Algorithm Parameters:')
     group_2.add_argument('--pw', type = int, default = 2, help = 'Width of the interaction '
                          'region surrounding the peak. According to experience, we set it'
                          ' to 1 at 20 kb, 2 at 10 kb, and 4 at 5 kb.')
-    group_2.add_argument('--ww', type = int, default = 5, help = 'The size of the donut '
+    group_2.add_argument('--ww', type = int, default = 5, help = 'Width of the donut '
                          'sampled. Set it to 3 at 20 kb, 5 at 10 kb, and 7 at 5 kb.')
-    group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut size.')
+    group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.1, help = 'Significant Level.')
-    group_2.add_argument('--maxapart', type = int, default = 10000000, help = 'Maximum genomic'
-                         ' distance between two loci.')
+    group_2.add_argument('--maxapart', type = int, default = 5000000, help = 'Maximum genomic'
+                         ' distance between two involved loci.')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -81,12 +79,11 @@ def run():
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
                    '# output file prefix = %s' % args.output,
-                   '# HiC Data Path = %s' % args.path,
+                   '# Cooler URI = %s' % args.path,
                    '# chromosomes = %s' % args.chroms,
-                   '# data resolution = %s' % args.resolution,
                    '# Peak window width = %s' % args.pw,
-                   '# Donut size = %s' % args.ww,
-                   '# Maximum donut size = %s' % args.maxww,
+                   '# Donut width = %s' % args.ww,
+                   '# Maximum donut width = %s' % args.maxww,
                    '# Significant Level = %s' % args.siglevel,
                    '# Genomic distance range = %s' % [args.ww * args.resolution, args.maxapart]
                    ]
@@ -95,10 +92,10 @@ def run():
         logger.info('\n' + argtxt)
         
         # Package Dependencies
-        from mirnylib.numutils import completeIC
+        import cooler
         
-        logger.info('Locating Hi-C data ...')
-        Lib = np.load(args.path)
+        logger.info('Loading Hi-C data ...')
+        Lib = cooler.Cooler(args.path)
         
         logger.info('Calling Peaks ...')
         OF = open('.'.join([args.output, 'peaks', 'txt']), 'wb')
