@@ -148,6 +148,8 @@ class Genome(object):
                     else:
                         continue
                 
+                log.debug('Current chromosome pairs: {}-{}'.format(c1,c2))
+                
                 if type(byres[(c1,c2)])==str:
                     data = np.loadtxt(byres[(c1,c2)], dtype=self._intertype)
                 else:
@@ -162,9 +164,11 @@ class Genome(object):
                 yLen = y.max() + 1
                 if ci != cj:
                     tmp = sparse.csr_matrix((data['IF'], (x,y)), shape=(xLen, yLen))
+                    tmp = sparse.lil_matrix(tmp)
                 else:
                     Len = max(xLen, yLen)
                     tmp = sparse.csr_matrix((data['IF'], (x,y)), shape=(Len, Len))
+                    tmp = sparse.lil_matrix(tmp)
                     tmp[y,x] = tmp[x,y]
                     tmp = sparse.triu(tmp)
                 
