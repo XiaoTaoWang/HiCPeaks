@@ -211,22 +211,42 @@ Let's list the contents under current directory again::
 
     total 2968
     drwxr-xr-x  5 xtwang  staff   160B Aug 21 23:25 40K
-    -rw-r--r--  1 xtwang  staff    32K Aug 22 10:48 BHFDR.log
-    -rw-r--r--  1 xtwang  staff    96K Aug 22 10:50 HICCUPS.log
-    -rw-r--r--  1 xtwang  staff   270K Aug 22 10:48 K562-MboI-BHFDR-loops.txt.peaks.txt
-    -rw-r--r--  1 xtwang  staff   185K Aug 22 10:50 K562-MboI-HICCUPS-loops.txt.peaks.txt
+    -rw-r--r--  1 xtwang  staff    32K Aug 22 11:12 BHFDR.log
+    -rw-r--r--  1 xtwang  staff    68K Aug 22 11:13 HICCUPS.log
+    -rw-r--r--  1 xtwang  staff   270K Aug 22 11:12 K562-MboI-BHFDR-loops.txt
+    -rw-r--r--  1 xtwang  staff   185K Aug 22 11:13 K562-MboI-HICCUPS-loops.txt
     -rw-r--r--  1 xtwang  staff   704K Aug 22 10:31 K562-MboI-parts.cool
     -rw-r--r--  1 xtwang  staff    18B Aug 21 23:25 datasets
     -rw-r--r--  1 xtwang  staff    29K Aug 22 10:31 tocooler.log
 
 Peak Visualization
 ------------------
-Now, you can visualize BHFDR and HICCUPS peak annotations on heatmap with *peak-plot*::
+Now, you can visualize BHFDR and HICCUPS peak annotations on heatmap with *peak-plot*.
 
-    $ peak-plot
+For BHFDR peaks::
 
-  
+    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.01
 
+The output figure should look like this:
+
+.. image:: ./figures/test-BHFDR.png
+        :align: center
+
+
+For HICCUPS peaks::
+
+    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.01
+
+And the output plot:
+
+.. image:: ./figures/test-HICCUPS.png
+        :align: center
+
+
+Notes
+-----
+Although *hicpeaks* currently cannot perform further filtering based on local enrichment thresholds, you can do
+it by yourself with output annotations of *pyBHFDR* and *pyHICCUPS*.
 
 
 Reference
