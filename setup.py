@@ -10,7 +10,7 @@ or even mix it with other GPL-compatible codes. See the file LICENSE
 included with the distribution for more details.
 
 """
-import os, sys, lib
+import os, sys, lib, glob
 from distutils.core import setup
 
 def read(fname):
@@ -21,7 +21,7 @@ if (sys.version_info.major != 2) or (sys.version_info.minor != 7):
     sys.exit(2)
 
 # Guarantee Unix Format
-for src in ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR','scripts/peak-plot']:
+for src in glob.glob('scripts/*'):
     text = open(src, 'rb').read().replace('\r\n', '\n')
     open(src, 'wb').write(text)
 
@@ -32,10 +32,10 @@ setup(
     author_email = 'wangxiaotao686@gmail.com',
     url = 'https://github.com/XiaoTaoWang/HiCPeaks/',
     description = 'Identify real loops from Hi-C data.',
-    keywords = 'interaction contact Hi-C loop',
+    keywords = 'Hi-C interaction contact loop peak',
     package_dir = {'hicpeaks':'lib'},
     packages = ['hicpeaks'],
-    scripts = ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR','scripts/peak-plot'],
+    scripts = glob.glob('scripts/*'),
     long_description = read('README.rst'),
     classifiers = [
         'Programming Language :: Python :: 2.7',
