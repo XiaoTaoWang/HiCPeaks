@@ -129,8 +129,9 @@ This tutorial will guide you through the basic usage of all scripts distributed 
 
 toCooler
 --------
-If you have already created a cooler file for your Hi-C data, skip to the next sections
-`pyBHFDR <https://github.com/XiaoTaoWang/HiCPeaks/blob/master/README.rst#pybhfdr-and-pyhiccups>`_, go on otherwise.
+If you have already created a cooler file for your Hi-C data, skip to the next section
+`pyBHFDR and pyHICCUPS <https://github.com/XiaoTaoWang/HiCPeaks/blob/master/README.rst#pybhfdr-and-pyhiccups>`_,
+go on otherwise.
 
 First, you should store your TXT/NPZ bin-level Hi-C data into a cooler file by using *toCooler*. Let's begin
 with our sample data below. Suppose you are still in the *hicpeaks* distribution root folder: change your current
