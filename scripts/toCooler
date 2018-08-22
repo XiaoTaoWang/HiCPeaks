@@ -48,6 +48,8 @@ def getargs():
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
                         'with numerical labels. "--chroms" with zero argument will include '
                         'all chromosome data.')
+    parser.add_argument('--includeTrans', action='store_true',
+                        help='If specified, also store trans-chromosomal data into cooler.')
     parser.add_argument('--assembly', default='hg38', help='Assembly name of the reference genome.')
     
     # ICE
@@ -94,6 +96,7 @@ def run():
                    '# Output cooler path = {}'.format(args.output),
                    '# Hi-C datasets = {}'.format(args.datasets),
                    '# Chromosomes = {}'.format(args.chroms),
+                   '# Include trans-chromosomal data = {}'.format(args.includeTrans),
                    '# Genome Assembly = {}'.format(args.assembly),
                    '# Number of processes = {}'.format(args.nproc),
                    '# Log file name = {}'.format(args.logFile)
@@ -105,8 +108,10 @@ def run():
         
         try:
             cooler_path = os.path.abspath(os.path.expanduser(args.output))
+            onlyIntra = False if args.includeTrans else True
             Genome(datasets=args.datasets, outfil=args.output,
-                   assembly=args.assembly, chroms=args.chroms)
+                   assembly=args.assembly, chroms=args.chroms,
+                   onlyIntra=onlyIntra)
             
             for res in args.datasets:
                 cooler_uri = '{}::{}'.format(cooler_path, res)
