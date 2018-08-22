@@ -1,5 +1,5 @@
-Introduction
-============
+HICPeaks
+========
 *hicpeaks* provide a Python CPU-based implementation for BH-FDR and HICCUPS, two peak calling algorithms
 for Hi-C data, proposed by Rao et al [1]_.
 
@@ -14,11 +14,12 @@ a) Python (2.7, not compatible with 3.x for now)
 b) Multiprocess
 c) Numpy
 d) Scipy
-e) Pandas
-f) Statsmodels
-g) Scikit-Learn
-h) H5py
-i) Cooler
+e) Matplotlib
+f) Pandas
+g) Statsmodels
+h) Scikit-Learn
+i) H5py
+j) Cooler
 
 Other requirements:
 
@@ -46,7 +47,7 @@ channel has a large amount of common packages including *numpy*, *scipy*, *panda
 *scikit-learn*, and *h5py* listed above. To install these packages, type and execute the following
 command::
 
-    $ conda install numpy scipy pandas statsmodels scikit-learn h5py
+    $ conda install numpy scipy matplotlib pandas statsmodels scikit-learn h5py
 
 Other packages: *cooler* and *ucsc-fetchchromsizes* are not available in the *defaults* channel
 but included in the *bioconda* channel, and *multiprocess* is included in the *conda-forge* channel.
@@ -94,18 +95,39 @@ Overview
 
   A CPU-based python implementation for BH-FDR algorithm. Rao et al states in their supplementary material that
   this algorithm is robust enough to obtain all main results of their paper. Compared with HICCUPS, BH-FDR doesn't use
-  :math:`\lambda`-chunk in multiple hypothesis test, and only considers the background Donut region when calculating the
+  λ-chunk in multiple hypothesis test, and only considers the background Donut region when calculating the
   expected values. Here, *pyBHFDR* follows the algorithm pipelines of [1]_ faithfully except that it doesn't implement
   the greedy clustering algorithm for original peak pixels.
 
 - pyHICCUPS
 
   A CPU-based python implementation for HICCUPS algorithm. Besides the donut region, HICCUPS also considers the
-  lower-left, vertical and horizontal backgrounds when calculating the expected values. :math:`\lambda`-chunk is used
+  lower-left, vertical and horizontal backgrounds when calculating the expected values. And λ-chunk is used to overcome
+  several multiple hypothesis testing challenges for Hi-C data. Finally, while BH-FDR has to limit the detected pixels
+  near the diagonal (<2Mb), HICCUPS is able to generalize itself to the whole chromosome in theory. Here, *pyHICCUPS*
+  keeps all main concepts of the original algorithm except for these points (I may fix it in the near future):
+
+  1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
+  2. *pyHICCUPS* doesn't implement additional filtering of peak pixels based on local enrichment thresholds and local
+     clusters.
+  3. I haven't implemented the function to combine peak annotations at different resolutions.
+  4. Due to computation complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
+
+  Although these differences, peaks returned by *pyHICCUPS* are quite consistent with our visual inspection, and
+  generally follow the loop interaction pattern.
+
+
+QuickStart
+==========
+This tutorial will guide you through tools of 
+To run *pyBHFDR* or *pyHICCUPS*, you should first store your TXT/NPZ data into a cooler file with *toCooler*.
+
+Change to the example data folder
+  
 
 
 
 Reference
----------
+=========
 .. [1] Rao SS, Huntley MH, Durand NC et al. A 3D Map of the Human Genome at Kilobase Resolution
       Reveals Principles of Chromatin Looping. Cell, 2014, 159(7):1665-80.

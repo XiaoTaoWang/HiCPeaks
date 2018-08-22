@@ -22,7 +22,7 @@ def getargs():
     parser.add_argument('--logFile', default = 'BHFDR.log', help = 'Logging file name.')
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
-    group_1.add_argument('-p', '--path', default = '.',
+    group_1.add_argument('-p', '--path',
                          help = 'URI string pointing to a cooler under specific resolution.')
     group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
                         help = 'List of chromosome labels. Only Hi-C data within the specified '

@@ -129,11 +129,18 @@ class Genome(object):
         log.info('Extract and save data into cooler format for each resolution ...')
         for res in self.Map:
             log.info('Current resolution: %dbp', res)
-            bin_cumnums = self.binCount(res)
-            log.info('Generate bin table ...')
-            bintable = binnify(self.chromsizes, res)
             byres = self.Map[res]
-            pixels = self._generator(byres, bin_cumnums, self.onlyIntra)
+            # Extract parts of chromsizes
+            subset = []
+            for c1, c2 in byres:
+                subset.extend([c1,c2])
+            subset = set(subset)
+            Bool = [(i in subset) for i in self.chromsizes.index]
+            chromsizes = self.chromsizes[Bool]
+            bin_cumnums = self.binCount(chromsizes, res)
+            log.info('Generate bin table ...')
+            bintable = binnify(chromsizes, res)
+            pixels = self._generator(byres, chromsizes, bin_cumnums, self.onlyIntra)
             if os.path.exists(self.outfil):
                 append = True
             else:
@@ -143,10 +150,10 @@ class Genome(object):
                    triucheck=False, dupcheck=False, ensure_sorted=False)
             
     
-    def  _generator(self, byres, bin_cumnums, onlyIntra):
+    def  _generator(self, byres, chromsizes, bin_cumnums, onlyIntra):
 
-        for i in range(self.chromsizes.size):
-            for j in range(i, self.chromsizes.size):
+        for i in range(chromsizes.size):
+            for j in range(i, chromsizes.size):
                 c1, c2 = self.chromlist[i], self.chromlist[j]
                 if onlyIntra:
                     if c1!=c2:
@@ -220,15 +227,15 @@ class Genome(object):
         
         return Map
     
-    def binCount(self, res):
+    def binCount(self, chromsizes, res):
 
         def _each(chrom):
-            clen = self.chromsizes[chrom]
+            clen = chromsizes[chrom]
             n_bins = int(np.ceil(clen / res))
             return n_bins+1
         
-        data = [_each(c) for c in self.chromsizes.index]
-        n_bins = pd.Series(data, index=self.chromsizes.index)
+        data = [_each(c) for c in chromsizes.index]
+        n_bins = pd.Series(data, index=chromsizes.index)
         cum_n = n_bins.cumsum()
 
         return cum_n
