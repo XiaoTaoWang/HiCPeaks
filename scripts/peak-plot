@@ -28,11 +28,11 @@ def getargs():
                         help = 'URI string pointing to a cooler under specific resolution.')
     parser.add_argument('-I', '--loop-file', help='Loop file outputed by pyHICCUPS or pyBHFDR.')
     parser.add_argument('-C', '--chrom', help='Chromosome label of your anticipated region.')
-    parser.add_argument('-S', '--start', help='Start site (bp) of the region.')
-    parser.add_argument('-E', '--end', help='End site (bp) of the region.')
+    parser.add_argument('-S', '--start', type=int, help='Start site (bp) of the region.')
+    parser.add_argument('-E', '--end', type=int, help='End site (bp) of the region.')
     parser.add_argument('--correct', action='store_true',
                         help='''Whether or not plot ICE-corrected heatmap.''')
-    parser.add_argument('--siglevel', type = float, default = 0.05, help='Significant level.')
+    parser.add_argument('--siglevel', type=float, default=0.05, help='Significant level.')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -73,7 +73,7 @@ def run():
         import matplotlib
         matplotlib.use('Agg')
         import cooler
-        import matplotlib.pyplot as plot
+        import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
 
         cmap = LinearSegmentedColormap.from_list('interaction',
@@ -127,7 +127,7 @@ def run():
 
         fig = plt.figure(figsize=size)
         ax = fig.add_axes([Left, HB, width, HH])
-        sc = ax.imshow(M, cmap = my_cmap, aspect = 'auto', interpolation = 'none',
+        sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
                        vmax = vmax, origin = 'lower')
     
         interval = (end - start) // res

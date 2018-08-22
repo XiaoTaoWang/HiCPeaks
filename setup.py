@@ -21,7 +21,7 @@ if (sys.version_info.major != 2) or (sys.version_info.minor != 7):
     sys.exit(2)
 
 # Guarantee Unix Format
-for src in ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR']:
+for src in ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR','scripts/peak-plot']:
     text = open(src, 'rb').read().replace('\r\n', '\n')
     open(src, 'wb').write(text)
 
@@ -35,7 +35,7 @@ setup(
     keywords = 'significant interaction contact Hi-C loop',
     package_dir = {'hicpeaks':'lib'},
     packages = ['hicpeaks'],
-    scripts = ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR'],
+    scripts = ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR','scripts/peak-plot'],
     classifiers = [
         'Programming Language :: Python :: 2.7',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',

@@ -75,7 +75,7 @@ the setup.py script::
 
 Overview
 ========
-*hicpeaks* comes with 3 scripts: *toCooler*, *pyBHFDR* and *pyHICCUPS*.
+*hicpeaks* comes with 4 scripts: *toCooler*, *pyBHFDR*, *pyHICCUPS* and *peak-plot*.
 
 - toCooler
 

@@ -48,7 +48,7 @@ def getargs():
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
                         'with numerical labels. "--chroms" with zero argument will include '
                         'all chromosome data.')
-    parser.add_argument('--assembly', help='Assembly name of the reference genome.')
+    parser.add_argument('--assembly', default='hg38', help='Assembly name of the reference genome.')
     
     # ICE
     parser.add_argument('--nproc', default=1, type=int,
@@ -74,7 +74,7 @@ def run():
         logger.setLevel(10)
         console = logging.StreamHandler()
         filehandler = logging.handlers.RotatingFileHandler(args.logFile,
-                                                           maxBytes=50000,
+                                                           maxBytes=100000,
                                                            backupCount=5)
         # Set level for Handlers
         console.setLevel('INFO')

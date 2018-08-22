@@ -62,7 +62,7 @@ def run():
         logger.setLevel(10)
         console = logging.StreamHandler()
         filehandler = logging.handlers.RotatingFileHandler(args.logFile,
-                                                           maxBytes = 100000,
+                                                           maxBytes = 200000,
                                                            backupCount = 5)
         # Set level for Handlers
         console.setLevel('INFO')
@@ -112,7 +112,10 @@ def run():
             cDiags = []
             for i in x:
                 diag = cHeatMap.diagonal(i)
-                y.append(diag.mean())
+                mask = np.isnan(diag)
+                notnan = diag[np.logical_not(mask)]
+                y.append(notnan.mean())
+                diag[mask] = 0
                 cDiags.append(diag)
             cM = sparse.diags(cDiags, x, format='csr')
             IR = isotonic.IsotonicRegression(increasing='auto')
@@ -156,7 +159,7 @@ def run():
 
         for key, Donuts, LL in results:
             for i in Donuts:
-                lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\t{3:.4g}\n'
+                lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{4:.4g}\t{5:.4g}\t{6:.4g}\t{7:.4g}\t{8:.4g}\t{9:.4g}\n'
                 contents = (key,) + i + Donuts[i] + LL[i][1:]
                 line = lineFormat.format(*contents)
                 OF.write(line)        

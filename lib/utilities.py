@@ -94,9 +94,9 @@ class Genome(object):
         for i in ['X','Y','M']:
             if i in nondigits:
                 tmp.append(nondigits.pop(nondigits.index(i)))
-        self.chromlist = tmp + sorted(nondigits)
-        lengths = [chromsizes[i] for i in self.chromlist]
-        self.chromsizes = pd.Series(data=lengths, index=self.chromlist)
+        chromlist = tmp + sorted(nondigits)
+        lengths = [chromsizes[i] for i in chromlist]
+        self.chromsizes = pd.Series(data=lengths, index=chromlist)
         log.info('Done')
 
         ## We don't read data into memory at this point.
@@ -140,22 +140,23 @@ class Genome(object):
             bin_cumnums = self.binCount(chromsizes, res)
             log.info('Generate bin table ...')
             bintable = binnify(chromsizes, res)
-            pixels = self._generator(byres, chromsizes, bin_cumnums, self.onlyIntra)
+            pixels = self._generator(byres, chromsizes, bin_cumnums)
             if os.path.exists(self.outfil):
                 append = True
             else:
                 append = False
             cooler_uri = '{}::{}'.format(self.outfil, res)
-            create(cooler_uri, bintable, pixels, assembly=assembly, append=append, boundscheck=False,
-                   triucheck=False, dupcheck=False, ensure_sorted=False)
+            create(cooler_uri, bintable, pixels, assembly=assembly, append=append,
+                   boundscheck=False, triucheck=False, dupcheck=False, ensure_sorted=False,
+                   metadata={'onlyIntra':str(self.onlyIntra)})
             
     
-    def  _generator(self, byres, chromsizes, bin_cumnums, onlyIntra):
+    def  _generator(self, byres, chromsizes, bin_cumnums):
 
         for i in range(chromsizes.size):
             for j in range(i, chromsizes.size):
-                c1, c2 = self.chromlist[i], self.chromlist[j]
-                if onlyIntra:
+                c1, c2 = chromsizes.index[i], chromsizes.index[j]
+                if self.onlyIntra:
                     if c1!=c2:
                         continue
                 if (c1,c2) in byres:
@@ -272,10 +273,15 @@ def balance(cool_uri, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
         else:
             map_ = map
         
+        if clr.info['metadata']['onlyIntra']=='True':
+            onlyIntra = True
+        else:
+            onlyIntra = False
+        
         bias, stats = ice.iterative_correction(
                 clr,
                 chunksize=chunksize,
-                cis_only=False,
+                cis_only=onlyIntra,
                 trans_only=False,
                 tol=tol,
                 min_nnz=min_nnz,
