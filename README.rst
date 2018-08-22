@@ -147,7 +147,8 @@ working directory to the sub-folder *example*::
     -rw-r--r--  1 xtwang  staff   2.7M Aug 21 23:25 21_21.txt
     -rw-r--r--  1 xtwang  staff   2.9M Aug 21 23:25 22_22.txt
 
-There are one sub-directory called *40K* which contains Hi-C data of two chromosomes in K562 cell line at 40K resolution, and one metadata file *datasets* which we can pass directly to *toCooler*::
+There are one sub-directory called *40K* which contains Hi-C data of two chromosomes in K562 cell line at 40K resolution,
+and one metadata file *datasets* which we can pass directly to *toCooler*::
 
     $ cd 40K
     $ head -5 21_21.txt
