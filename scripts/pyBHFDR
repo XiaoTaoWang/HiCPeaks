@@ -18,7 +18,7 @@ def getargs():
                                      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 
     # Output
-    parser.add_argument('-O', '--output', help = 'Output prefix.')
+    parser.add_argument('-O', '--output', help = 'Output peak file path.')
     parser.add_argument('--logFile', default = 'BHFDR.log', help = 'Logging file name.')
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
@@ -79,7 +79,7 @@ def run():
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
-                   '# Output file prefix = {}'.format(args.output),
+                   '# Output file = {}'.format(args.output),
                    '# Cooler URI = {}'.format(args.path),
                    '# Chromosomes = {}'.format(args.chroms),
                    '# Peak window width = {}'.format(args.pw),
@@ -145,7 +145,7 @@ def run():
             map_ = pool.map
         
         logger.info('Calling Peaks ...')
-        OF = open('.'.join([args.output, 'peaks', 'txt']), 'wb')
+        OF = open(args.output, 'wb')
         head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'IF', 'Fold-Enrichment', 'pvalue', 'qvalue']) + '\n'
         OF.write(head)
         

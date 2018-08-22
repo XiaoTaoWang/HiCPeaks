@@ -141,7 +141,7 @@ def run():
         caxis_H(ax)
 
         ## Colorbar
-        ax = fig.add_axes([Left+width+0.08, HB, 0.03, HH])
+        ax = fig.add_axes([Left+width+0.06, HB, 0.03, HH])
         fig.colorbar(sc, cax=ax)
 
         plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)
