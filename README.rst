@@ -1,4 +1,4 @@
-HICPeaks
+HiCPeaks
 ========
 *hicpeaks* provide a Python CPU-based implementation for BH-FDR and HICCUPS, two peak calling algorithms
 for Hi-C data, proposed by Rao et al [1]_.
