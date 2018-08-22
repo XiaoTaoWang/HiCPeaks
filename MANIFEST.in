@@ -1,2 +1,3 @@
 include README.rst LICENSE
 recursive-include example *
+recursive-include figures *

@@ -32,10 +32,11 @@ setup(
     author_email = 'wangxiaotao686@gmail.com',
     url = 'https://github.com/XiaoTaoWang/HiCPeaks/',
     description = 'Identify real loops from Hi-C data.',
-    keywords = 'significant interaction contact Hi-C loop',
+    keywords = 'interaction contact Hi-C loop',
     package_dir = {'hicpeaks':'lib'},
     packages = ['hicpeaks'],
     scripts = ['scripts/toCooler','scripts/pyHICCUPS','scripts/pyBHFDR','scripts/peak-plot'],
+    long_description = read('README.rst'),
     classifiers = [
         'Programming Language :: Python :: 2.7',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
