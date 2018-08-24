@@ -5,17 +5,23 @@
 # Author: XiaoTao Wang
 
 from __future__ import division
-import argparse, sys, logging, logging.handlers
+import argparse, sys, logging, logging.handlers, hicpeaks
 
 import numpy as np
 from scipy import sparse
-from sklearn import isotonic
+
+currentVersion = hicpeaks.__version__
 
 def getargs():
     ## Construct an ArgumentParser object for command-line arguments
     parser = argparse.ArgumentParser(usage = '%(prog)s <-O output> [options]',
                                      description = 'Local Peak Calling for Hi-C Data',
                                      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    
+    # Version
+    parser.add_argument('-v', '--version', action='version',
+                        version=' '.join(['%(prog)s',currentVersion]),
+                        help='Print version number and exit.')
 
     # Output
     parser.add_argument('-O', '--output', help = 'Output peak file path.')
@@ -96,6 +102,7 @@ def run():
         # Package Dependencies
         import cooler
         from multiprocess import Pool
+        from sklearn import isotonic
 
         def worker(tuple_arg):
             Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
