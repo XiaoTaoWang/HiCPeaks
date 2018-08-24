@@ -194,15 +194,22 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
 
         return extODA
     
+    def extCDiags(w, i):
+
+        OneDArray = np.zeros(chromLen - predict)
+    
     x = np.arange(ww, num)
     predictE = IR.predict(x)
     predictE[predictE < 0] = 0
+    predictE = dict(zip(range(x.size), zip(x, predictE)))
     EDiags = []
-    for i in xrange(x.size):
-        OneDArray = np.ones(chromLen - x[i]) * predictE[i]
+    for i in range(x.size):
+        OneDArray = np.ones(chromLen - predictE[i][0]) * predictE[i][1]
         EDiags.append(OneDArray)
     
     EM = sparse.diags(EDiags, x, format = 'csr')
+
+    del EDiags
     
     extCDiags = {}
     extEDiags = {}

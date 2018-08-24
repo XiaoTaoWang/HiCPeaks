@@ -192,7 +192,15 @@ class Genome(object):
                 if type(byres[(c1,c2)])==str:
                     data = np.loadtxt(byres[(c1,c2)], dtype=self._intertype)
                 else:
-                    data = byres[(c1,c2)][(c1,c2)]
+                    # Make it compatible with TADLib and old version of runHiC
+                    if c1!=c2:
+                        data = byres[(c1,c2)][(c1,c2)]
+                    else:
+                        if c1 in byres[(c1,c2)].files:
+                            data = byres[(c1,c2)][c1]
+                        else:
+                            data = byres[(c1,c2)][(c1,c2)]
+
                 x, y = data['bin1'], data['bin2']
                 # Fast guarantee triu matrix
                 if ci > cj:
