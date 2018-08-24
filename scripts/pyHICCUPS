@@ -108,16 +108,12 @@ def run():
             Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
             logger.info('Chromosome %s ...', key)
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
-            # Customize Sparse RAW Matrix ...
+            cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
+            # Customize Sparse Matrix ...
             chromLen = H.shape[0]
             num = args.maxapart // resolution + args.maxww + 1
             Diags = [H.diagonal(i) for i in np.arange(num)]
-            del H
             M = sparse.diags(Diags, np.arange(num), format='csr')
-            del Diags
-
-            cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
-            # Customize Sparse ICE Matrix ...
             x = np.arange(args.ww, num)
             y = []
             cDiags = []
@@ -128,18 +124,18 @@ def run():
                 y.append(notnan.mean())
                 diag[mask] = 0
                 cDiags.append(diag)
-            del cHeatMap
             cM = sparse.diags(cDiags, x, format='csr')
-            del cDiags
             IR = isotonic.IsotonicRegression(increasing='auto')
             IR.fit(x, y)
+
+            del H, cHeatMap
 
             tmp = Lib.bins().fetch(key)['weight'].values
             mask = np.logical_not(tmp==0)
             biases = np.zeros_like(tmp)
             biases[mask] = 1/tmp[mask]
 
-            Donuts, LL = pcaller(M, cM, biases, IR, chromLen, num, key,
+            Donuts, LL = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, key,
                                 pw=pw, ww=ww, sig=siglevel, maxww=maxww, maxapart=maxapart,
                                 res=resolution)
             
@@ -180,7 +176,7 @@ def run():
                             
         logger.info('Done!')
 
-def pcaller(M, cM, biases, IR, chromLen, num, chrom, pw=2, ww=5, sig=0.05, maxww=20,
+def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, sig=0.05, maxww=20,
             maxapart=2000000, res=10000):
     
     # Necessary Modules
@@ -189,38 +185,40 @@ def pcaller(M, cM, biases, IR, chromLen, num, chrom, pw=2, ww=5, sig=0.05, maxww
     
     logger = logging.getLogger()
     
-    def extDiags(w, i):
-        OneDArray = M.diagonal(i)
-        extODA = np.zeros(chromLen - i + w*2)
-        extODA[w:-w] = OneDArray
-
-        return extODA
+    extDiags = {}
+    for w in range(ww, maxww + 1):
+        temp = []
+        for i in xrange(num):
+            OneDArray = Diags[i]
+            extODA = np.zeros(chromLen - i + w*2)
+            extODA[w:-w] = OneDArray
+            temp.append(extODA)
+        extDiags[w] = temp
     
-    def extEDiags(w, i):
-        extODA_E = np.zeros(chromLen - predictE[i][0] + w*2)
-        extODA_E[w:-w] = predictE[i][1]
-
-        return extODA_E
-    
-    def extCDiags(w, i):
-        OneDArray = cM.diagonal(predictE[i][0])
-        extODA_C = np.zeros(chromLen - predictE[i][0] + w*2)
-        extODA_C[w:-w] = OneDArray
-
-        return extODA_C
-
-        
     x = np.arange(ww, num)
     predictE = IR.predict(x)
     predictE[predictE < 0] = 0
-    predictE = dict(zip(range(x.size), zip(x, predictE)))
-
     EDiags = []
-    for i in range(x.size):
-        OneDArray = np.ones(chromLen - predictE[i][0]) * predictE[i][1]
+    for i in xrange(x.size):
+        OneDArray = np.ones(chromLen - x[i]) * predictE[i]
         EDiags.append(OneDArray)
     
     EM = sparse.diags(EDiags, x, format = 'csr')
+    
+    extCDiags = {}
+    extEDiags = {}
+    for w in range(ww, maxww + 1):
+        tempC = []
+        tempE = []
+        for i in xrange(x.size):
+            extODA_E = np.zeros(chromLen - x[i] + w*2)
+            extODA_E[w:-w] = EDiags[i]
+            tempE.append(extODA_E)
+            extODA_C = np.zeros(chromLen - x[i] + w*2)
+            extODA_C[w:-w] = cDiags[i]
+            tempC.append(extODA_C)
+        extCDiags[w] = tempC
+        extEDiags[w] = tempE
     
     ps = 2 * pw + 1 # Peak Size
     
@@ -252,7 +250,7 @@ def pcaller(M, cM, biases, IR, chromLen, num, chrom, pw=2, ww=5, sig=0.05, maxww
                     else:
                         starti = i - Offsets_Diags[w][(i,j)][oi]
                         endi = starti + chromLen + Offsets_Diags[w][(i,j)][oi]
-                    Pool_Diags[w][(i,j)].append(extDiags(w,oi)[starti:endi])
+                    Pool_Diags[w][(i,j)].append(extDiags[w][oi][starti:endi])
                 for oi in xrange(x.size):
                     if Offsets_EDiags[w][(i,j)][oi] >= 0:
                         starti = i
@@ -260,8 +258,8 @@ def pcaller(M, cM, biases, IR, chromLen, num, chrom, pw=2, ww=5, sig=0.05, maxww
                     else:
                         starti = i - Offsets_EDiags[w][(i,j)][oi]
                         endi = starti + chromLen + Offsets_EDiags[w][(i,j)][oi]
-                    Pool_EDiags[w][(i,j)].append(extEDiags(w,oi)[starti:endi])
-                    Pool_cDiags[w][(i,j)].append(extCDiags(w,oi)[starti:endi])
+                    Pool_EDiags[w][(i,j)].append(extEDiags[w][oi][starti:endi])
+                    Pool_cDiags[w][(i,j)].append(extCDiags[w][oi][starti:endi])
                 
     ## Peak Calling ...    
     xi, yi = M.nonzero()
