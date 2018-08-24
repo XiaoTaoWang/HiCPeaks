@@ -40,7 +40,7 @@ def getargs():
     
     # Input
     parser.add_argument('-d', '--datasets', type = datasets_convert,
-                        help = '''Path of the metadata file containing pairs of resolutions
+                        help = '''Path to the metadata file containing pairs of resolutions
                                and corresponding data path. Refer to the online documentation
                                for more details.''')
     parser.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
@@ -51,6 +51,8 @@ def getargs():
     parser.add_argument('--includeTrans', action='store_true',
                         help='If specified, also store trans-chromosomal data into cooler.')
     parser.add_argument('--assembly', default='hg38', help='Assembly name of the reference genome.')
+    parser.add_argument('--chromsizes-file',
+                        help='''Path to the file containing chromosome size information.''')
     
     # ICE
     parser.add_argument('--nproc', default=1, type=int,
@@ -98,6 +100,7 @@ def run():
                    '# Chromosomes = {}'.format(args.chroms),
                    '# Include trans-chromosomal data = {}'.format(args.includeTrans),
                    '# Genome Assembly = {}'.format(args.assembly),
+                   '# Chromosome size path = {}'.format(args.chromsizes_file),
                    '# Number of processes = {}'.format(args.nproc),
                    '# Log file name = {}'.format(args.logFile)
                    ]
@@ -110,8 +113,8 @@ def run():
             cooler_path = os.path.abspath(os.path.expanduser(args.output))
             onlyIntra = False if args.includeTrans else True
             Genome(datasets=args.datasets, outfil=args.output,
-                   assembly=args.assembly, chroms=args.chroms,
-                   onlyIntra=onlyIntra)
+                   assembly=args.assembly, chromsizes_file=args.chromsizes_file,
+                   chroms=args.chroms, onlyIntra=onlyIntra)
             
             for res in args.datasets:
                 cooler_uri = '{}::{}'.format(cooler_path, res)

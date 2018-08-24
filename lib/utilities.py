@@ -35,6 +35,19 @@ def fetchChromSizes(assembly, chroms):
     
     return chromsizes
 
+def readChromSizes(chromsizes_file, chroms):
+
+    chromsizes = {}
+    with open(chromsizes_file, 'rb') as source:
+        for line in source:
+            parse = line.rstrip().split()
+            c, s = parse[0].lstrip('chr'), parse[1]
+            check = ((not chroms) or (c.isdigit() and ('#' in chroms)) or (c in chroms))
+            if check:
+                chromsizes[c] = int(s)
+    
+    return chromsizes
+
 class Genome(object):
     """
     Load bin-level Hi-C data of TXT or NPZ format, and save it into cooler files.
@@ -62,7 +75,10 @@ class Genome(object):
         Path of the output Cooler file.
     
     assembly : str
-        Genome assembly name.
+        Genome assembly name. (Default: hg38)
+
+    chromsizes_file : str
+        Path to the file containing chromosome size information.
     
     chroms : list
         List of chromosome labels. Only Hi-C data within the specified chromosomes
@@ -74,7 +90,7 @@ class Genome(object):
         If specified, only include intra-chromosomal data.
 
     """
-    def __init__(self, datasets, outfil, assembly='hg38', chroms=['#','X'], onlyIntra=True):
+    def __init__(self, datasets, outfil, assembly='hg38', chromsizes_file=None, chroms=['#','X'], onlyIntra=True):
 
         self.outfil = os.path.abspath(os.path.expanduser(outfil))
         if os.path.exists(self.outfil):
@@ -85,8 +101,13 @@ class Genome(object):
         data = datasets
 
         ## Ready for data loading
-        log.info('Fetch chromosome sizes from UCSC ...')
-        chromsizes = fetchChromSizes(assembly, self.chroms)
+        if not chromsizes_file is None:
+            chromsizes_path = os.path.abspath(os.path.expanduser(chromsizes_file))
+            log.info('Read chromosome sizes from {}'.format(chromsizes_path))
+            chromsizes = readChromSizes(chromsizes_path, self.chroms)
+        else:
+            log.info('Fetch chromosome sizes from UCSC ...')
+            chromsizes = fetchChromSizes(assembly, self.chroms)
         chromlist = chromsizes.keys()
         # sort chromosome labels
         tmp = map(str, sorted(map(int, [i for i in chromlist if i.isdigit()])))

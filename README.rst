@@ -140,12 +140,13 @@ working directory to the sub-folder *example*::
     $ cd example
     $ ls -lh *
 
-    -rw-r--r--  1 xtwang  staff    18B Aug 21 23:25 datasets
+    -rw-r--r--  1 xtwang  staff    18B Aug 21 19:46 datasets
+    -rw-r--r--  1 xtwang  staff   293B Aug 23 20:53 hg38.chromsizes
 
     40K:
     total 11608
-    -rw-r--r--  1 xtwang  staff   2.7M Aug 21 23:25 21_21.txt
-    -rw-r--r--  1 xtwang  staff   2.9M Aug 21 23:25 22_22.txt
+    -rw-r--r--  1 xtwang  staff   2.7M Aug 21 19:44 21_21.txt
+    -rw-r--r--  1 xtwang  staff   2.9M Aug 21 19:44 22_22.txt
 
 There are one sub-directory called *40K* which contains Hi-C data of two chromosomes in K562 cell line at 40K resolution,
 and one metadata file *datasets* which we can pass directly to *toCooler*::
@@ -172,6 +173,10 @@ above.
 To transform this data to *cooler* format, just run the command below::
 
     $ toCooler -O K562-MboI-parts.cool -d datasets --assembly hg38 --nproc 2
+
+*toCooler* routinely fetch sizes of each chromosome from UCSC with the provided genome assembly name (here hg38).
+However, if your reference genome is not holded in UCSC, you can also build a file like "hg38.chromsizes" in
+current working directory, and pass the file path to the argument "--chromsizes-file".
 
 Type ``toCooler`` with no arguments on your terminal to print detailed help information for each parameter.
 
