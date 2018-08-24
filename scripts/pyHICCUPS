@@ -108,12 +108,15 @@ def run():
             Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
             logger.info('Chromosome %s ...', key)
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
-            cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
-            # Customize Sparse Matrix ...
+            # Customize Sparse RAW Matrix ...
             chromLen = H.shape[0]
             num = args.maxapart // resolution + args.maxww + 1
             Diags = [H.diagonal(i) for i in np.arange(num)]
+            del H
             M = sparse.diags(Diags, np.arange(num), format='csr')
+
+            cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
+            # Customize Sparse ICE Matrix ...
             x = np.arange(args.ww, num)
             y = []
             cDiags = []
@@ -124,11 +127,10 @@ def run():
                 y.append(notnan.mean())
                 diag[mask] = 0
                 cDiags.append(diag)
+            del cHeatMap
             cM = sparse.diags(cDiags, x, format='csr')
             IR = isotonic.IsotonicRegression(increasing='auto')
             IR.fit(x, y)
-
-            del H, cHeatMap
 
             tmp = Lib.bins().fetch(key)['weight'].values
             mask = np.logical_not(tmp==0)
@@ -185,15 +187,12 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     
     logger = logging.getLogger()
     
-    extDiags = {}
-    for w in range(ww, maxww + 1):
-        temp = []
-        for i in xrange(num):
-            OneDArray = Diags[i]
-            extODA = np.zeros(chromLen - i + w*2)
-            extODA[w:-w] = OneDArray
-            temp.append(extODA)
-        extDiags[w] = temp
+    def extDiags(w, i):
+        OneDArray = M.diagonal(i)
+        extODA = np.zeros(chromLen - i + w*2)
+        extODA[w:-w] = OneDArray
+
+        return extODA
     
     x = np.arange(ww, num)
     predictE = IR.predict(x)
@@ -250,7 +249,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
                     else:
                         starti = i - Offsets_Diags[w][(i,j)][oi]
                         endi = starti + chromLen + Offsets_Diags[w][(i,j)][oi]
-                    Pool_Diags[w][(i,j)].append(extDiags[w][oi][starti:endi])
+                    Pool_Diags[w][(i,j)].append(extDiags(w,oi)[starti:endi])
                 for oi in xrange(x.size):
                     if Offsets_EDiags[w][(i,j)][oi] >= 0:
                         starti = i
