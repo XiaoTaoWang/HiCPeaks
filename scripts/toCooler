@@ -50,7 +50,7 @@ def getargs():
                         'all chromosome data.')
     parser.add_argument('--includeTrans', action='store_true',
                         help='If specified, also store trans-chromosomal data into cooler.')
-    parser.add_argument('--assembly', default='hg38', help='Assembly name of the reference genome.')
+    parser.add_argument('--assembly', help='Assembly name of the reference genome.')
     parser.add_argument('--chromsizes-file',
                         help='''Path to the file containing chromosome size information.''')
     
