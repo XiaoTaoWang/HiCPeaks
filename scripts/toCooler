@@ -78,7 +78,7 @@ def run():
         logger.setLevel(10)
         console = logging.StreamHandler()
         filehandler = logging.handlers.RotatingFileHandler(args.logFile,
-                                                           maxBytes=100000,
+                                                           maxBytes=200000,
                                                            backupCount=5)
         # Set level for Handlers
         console.setLevel('INFO')
@@ -120,7 +120,7 @@ def run():
                 cooler_uri = '{}::{}'.format(cooler_path, res)
                 balance(cooler_uri, nproc=args.nproc)
                 logger.info('Done')
-            
+                
         except:
             traceback.print_exc(file = open(args.logFile, 'a'))
             sys.exit(1)

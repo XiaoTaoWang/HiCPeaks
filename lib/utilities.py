@@ -108,9 +108,6 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None,
     sanitize_pixels
 
     """
-    from cooler.util import get_chromsizes
-
-    chromsizes = get_chromsizes(bins)
     bins = bins.copy()
     bins['chrom'] = bins['chrom'].astype(object)
 
@@ -129,6 +126,7 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None,
         log.info('Writing chunk {}: {}'.format(i, uri))
         create(uri, bins, chunk, columns=columns, dtype=dtype, append=True,
                boundscheck=False, triucheck=False, dupcheck=False, ensure_sorted=False)
+        
     chunks = CoolerMerger([Cooler(uri) for uri in uris], mergebuf)
 
     log.info('Merging into {}'.format(cool_uri))
@@ -260,7 +258,9 @@ class Genome(object):
                        metadata={'onlyIntra':str(self.onlyIntra)})
             else:
                 create_from_unordered(cooler_uri, bintable, pixels, assembly=assembly,
-                                      append=append, metadata={'onlyIntra':str(self.onlyIntra))
+                                      append=append, metadata={'onlyIntra':str(self.onlyIntra)},
+                                      delete_temp=True, boundscheck=False, triucheck=False,
+                                      dupcheck=False, ensure_sorted=False)
             
     
     def  _generator(self, byres, chromsizes, bin_cumnums):
@@ -268,7 +268,6 @@ class Genome(object):
         for i in range(chromsizes.size):
             for j in range(i, chromsizes.size):
                 c1, c2 = chromsizes.index[i], chromsizes.index[j]
-                log.info('Current chromosome pair: {}-{}'.format(c1,c2))
                 if self.onlyIntra:
                     if c1!=c2:
                         continue
