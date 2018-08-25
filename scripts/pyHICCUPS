@@ -72,7 +72,7 @@ def run():
                                                            backupCount = 5)
         # Set level for Handlers
         console.setLevel('INFO')
-        filehandler.setLevel('DEBUG')
+        filehandler.setLevel('INFO')
         # Customizing Formatter
         formatter = logging.Formatter(fmt = '%(name)-14s %(levelname)-7s @ %(asctime)s: %(message)s',
                                       datefmt = '%m/%d/%y %H:%M:%S')
@@ -184,14 +184,22 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     from statsmodels.sandbox.stats.multicomp import multipletests
     
     logger = logging.getLogger()
+
+    # more codes for lower memory
+    # use reference instead of creating new arrays
+    extDiags_ref = []
+    for i in range(num):
+        OneDArray = Diags[i]
+        extODA = np.zeros(chromLen - i + maxww*2)
+        extODA[maxww:-maxww] = OneDArray
+        extDiags_ref.append(extODA)
     
-    extDiags = {}
-    for w in range(ww, maxww + 1):
+    extDiags = {maxww: extDiags_ref}
+    for w in range(ww, maxww):
         temp = []
-        for i in xrange(num):
-            OneDArray = Diags[i]
-            extODA = np.zeros(chromLen - i + w*2)
-            extODA[w:-w] = OneDArray
+        for i in range(num):
+            delta = maxww-w
+            extODA = extDiags_ref[i][delta:-delta]
             temp.append(extODA)
         extDiags[w] = temp
     
@@ -199,67 +207,37 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     predictE = IR.predict(x)
     predictE[predictE < 0] = 0
     EDiags = []
-    for i in xrange(x.size):
+    for i in range(x.size):
         OneDArray = np.ones(chromLen - x[i]) * predictE[i]
         EDiags.append(OneDArray)
     
     EM = sparse.diags(EDiags, x, format = 'csr')
+
+    extCDiags_ref = []
+    extEDiags_ref = []
+    for i in range(x.size):
+        extODA_C = np.zeros(chromLen - x[i] + maxww*2)
+        extODA_C[maxww:-maxww] = cDiags[i]
+        extCDiags_ref.append(extODA_C)
+        extODA_E = np.zeros(chromLen - x[i] + maxww*2)
+        extODA_E[maxww:-maxww] = EDiags[i]
+        extEDiags_ref.append(extODA_E)
     
-    extCDiags = {}
-    extEDiags = {}
-    for w in range(ww, maxww + 1):
+    extCDiags = {maxww: extCDiags_ref}
+    extEDiags = {maxww: extEDiags_ref}
+    for w in range(ww, maxww):
         tempC = []
         tempE = []
-        for i in xrange(x.size):
-            extODA_E = np.zeros(chromLen - x[i] + w*2)
-            extODA_E[w:-w] = EDiags[i]
-            tempE.append(extODA_E)
-            extODA_C = np.zeros(chromLen - x[i] + w*2)
-            extODA_C[w:-w] = cDiags[i]
+        for i in range(x.size):
+            delta = maxww - w
+            extODA_C = extCDiags_ref[i][delta:-delta]
             tempC.append(extODA_C)
+            extODA_E = extEDiags_ref[i][delta:-delta]
+            tempE.append(extODA_E)
         extCDiags[w] = tempC
         extEDiags[w] = tempE
     
     ps = 2 * pw + 1 # Peak Size
-    
-    Pool_Diags = {}
-    Pool_EDiags = {}
-    Pool_cDiags = {}
-    Offsets_Diags = {}
-    Offsets_EDiags = {}
-    
-    for w in range(ww, maxww + 1):
-        ws = 2 * w + 1 # Window size
-        ss = range(ws)
-        Pool_Diags[w] = {}
-        Pool_EDiags[w] = {}
-        Pool_cDiags[w] = {}
-        Offsets_Diags[w] = {}
-        Offsets_EDiags[w] = {}
-        for i in ss:
-            for j in ss:
-                Pool_Diags[w][(i,j)] = []
-                Pool_EDiags[w][(i,j)] = []
-                Pool_cDiags[w][(i,j)] = []
-                Offsets_Diags[w][(i,j)] = np.arange(num) + (i - j)
-                Offsets_EDiags[w][(i,j)] = x + (i - j)
-                for oi in np.arange(num):
-                    if Offsets_Diags[w][(i,j)][oi] >= 0:
-                        starti = i
-                        endi = i + chromLen - Offsets_Diags[w][(i,j)][oi]
-                    else:
-                        starti = i - Offsets_Diags[w][(i,j)][oi]
-                        endi = starti + chromLen + Offsets_Diags[w][(i,j)][oi]
-                    Pool_Diags[w][(i,j)].append(extDiags[w][oi][starti:endi])
-                for oi in xrange(x.size):
-                    if Offsets_EDiags[w][(i,j)][oi] >= 0:
-                        starti = i
-                        endi = i + chromLen - Offsets_EDiags[w][(i,j)][oi]
-                    else:
-                        starti = i - Offsets_EDiags[w][(i,j)][oi]
-                        endi = starti + chromLen + Offsets_EDiags[w][(i,j)][oi]
-                    Pool_EDiags[w][(i,j)].append(extEDiags[w][oi][starti:endi])
-                    Pool_cDiags[w][(i,j)].append(extCDiags[w][oi][starti:endi])
                 
     ## Peak Calling ...    
     xi, yi = M.nonzero()
@@ -275,7 +253,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     logger.info('Chrom:{0}, Observed Contact Number: {1}'.format(chrom, xi.size))
     
     RefIdx = np.arange(xi.size)
-    RefMask = np.ones_like(xi, dtype = bool)
+    RefMask = np.ones(xi.size, dtype = bool)
     
     iniNum = xi.size
     
@@ -292,17 +270,44 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
         P_1 = set([(i,j) for i in range(w+1, ws) for j in range(w)])
         P_2 = set([(i,j) for i in range(w+1, ps+w-pw) for j in range(w-pw, w)])
         P2 = P_1 - P_2 # Lower-left Region
+
+        ss = range(ws)
+        Pool_Diags = {}
+        Pool_EDiags = {}
+        Pool_cDiags = {}
+        for i in ss:
+            for j in ss:
+                Pool_Diags[(i,j)] = []
+                Pool_EDiags[(i,j)] = []
+                Pool_cDiags[(i,j)] = []
+                for oi in range(num):
+                    if oi + i - j >= 0:
+                        starti = i
+                        endi = i + chromLen - (oi + i - j)
+                    else:
+                        starti = i - (oi + i - j)
+                        endi = starti + chromLen + (oi + i - j)
+                    Pool_Diags[(i,j)].append(extDiags[w][oi][starti:endi])
+                for oi in range(x.size):
+                    if x[oi] + i - j >= 0:
+                        starti = i
+                        endi = i + chromLen - (x[oi] + i - j)
+                    else:
+                        starti = i - (x[oi] + i - j)
+                        endi = starti + chromLen + (x[oi] + i - j)
+                    Pool_EDiags[(i,j)].append(extEDiags[w][oi][starti:endi])
+                    Pool_cDiags[(i,j)].append(extCDiags[w][oi][starti:endi])
         
-        for key in Pool_Diags[w]:
+        for key in Pool_Diags:
             if (key[0] != w) and (key[1] != w) and (key not in P1) and (key not in P2):
-                bS['K'] = bS['K'] + sparse.diags(Pool_cDiags[w][key], Offsets_EDiags[w][key], format = 'csr')
-                bE['K'] = bE['K'] + sparse.diags(Pool_EDiags[w][key], Offsets_EDiags[w][key], format = 'csr')
+                bS['K'] = bS['K'] + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
+                bE['K'] = bE['K'] + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
             if key in P2:
-                bS['K'] = bS['K'] + sparse.diags(Pool_cDiags[w][key], Offsets_EDiags[w][key], format = 'csr')
-                bE['K'] = bE['K'] + sparse.diags(Pool_EDiags[w][key], Offsets_EDiags[w][key], format = 'csr')
-                bS['Y'] = bS['Y'] + sparse.diags(Pool_cDiags[w][key], Offsets_EDiags[w][key], format = 'csr')
-                bE['Y'] = bE['Y'] + sparse.diags(Pool_EDiags[w][key], Offsets_EDiags[w][key], format = 'csr')
-                Reads = Reads + sparse.diags(Pool_Diags[w][key], Offsets_Diags[w][key], format = 'csr')
+                bS['K'] = bS['K'] + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
+                bE['K'] = bE['K'] + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
+                bS['Y'] = bS['Y'] + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
+                bE['Y'] = bE['Y'] + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
+                Reads = Reads + sparse.diags(Pool_Diags[key], np.arange(num) + (key[0] - key[1]), format = 'csr')
                 
         Txi = xi[RefIdx]
         Tyi = yi[RefIdx]
@@ -321,7 +326,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
             
         iniNum = RefIdx.size
         
-        if Valid_Ratio < 0.1:
+        if Valid_Ratio < 0.3:
             logger.info('Chrom:{0},    Ratio of valid contact is too small, break the loop ...'.format(chrom))
             break
         
@@ -339,13 +344,13 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     
     bR = {}
     for fl in flocals:
-        bR[fl] = sparse.csr_matrix((chromLen, chromLen))
+        bR[fl] = sparse.lil_matrix((chromLen, chromLen))
         bR[fl][xi, yi] = bRV[fl]
     
     ## Corrected Expected Matrix
     cEM = {}
     for fl in flocals:
-        cEM[fl] = EM.multiply(bR[fl])
+        cEM[fl] = EM.multiply(bR[fl].tocsr())
     
     logger.info('Chrom:{0}, Poisson Models and Benjamini-Hochberg Correcting for lambda chunks ...'.format(chrom))
     Description = {'K': 'Donut backgrounds', 'Y': 'Lower-left backgrounds'}
@@ -439,7 +444,7 @@ def lambdachunk(E):
     
     numbin = np.int(np.ceil(np.log(E.max()) / np.log(2) * 3 + 1))
     Pool = []
-    for i in xrange(1, numbin + 1):
+    for i in range(1, numbin + 1):
         if i == 1:
             lv = 0; rv = 1
         else:
