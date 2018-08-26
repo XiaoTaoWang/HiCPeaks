@@ -248,11 +248,28 @@ And the output plot:
 .. image:: ./figures/test-HICCUPS.png
         :align: center
 
-
 Notes
 -----
 Although *hicpeaks* currently cannot perform further filtering based on local enrichment thresholds, you can do
 it by yourself with output annotations of *pyBHFDR* and *pyHICCUPS*.
+
+Performance
+===========
+The tables below show the performance test of *toCooler*, *pyBHFDR* and *pyHICCUPS* with low (T47D) and high (K562)
+sequencing data, at low (40K) and high (10K) resolutions.
+
+- Valid contacts: total number of non-zero pixels on intra-chromosomal matrices
+- Number of proccesses: 1
+
+*toCooler*:
+
++--------------+----------------+--------------+-------------------------------+
+| Datasets     | Valid contacts |                 toCooler                     |
++--------------+----------------+--------------+-------------------------------+
+|                               | Memory Usage | Running time (hr: min: sec)   |
++==============+================+==============+===============================+
+| T47D (40K)   |   25,216,875   |    <600M     |          0:07:55              |
++--------------+----------------+--------------+-------------------------------+
 
 
 Reference
