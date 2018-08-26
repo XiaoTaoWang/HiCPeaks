@@ -260,7 +260,7 @@ sequencing data, at low (40K) and high (10K) resolutions.
 
 - Processor: 2.6 GHz Intel Core i7, Memory: 16 GB 2400 MHz DDR4
 - Software version: *hicpeaks 0.2.0-r1*
-- The original Hi-C data was stored in TXT
+- The original Hi-C data is stored in TXT
 - Number of proccesses assigned: 1
 - Valid contacts: total number of non-zero pixels on intra-chromosomal matrices
 - Running time format: hr: min: sec
@@ -274,25 +274,28 @@ sequencing data, at low (40K) and high (10K) resolutions.
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 | K562 (40K)   |   49,088,465   |    <1.2G     |    0:21:37   |    <500M     |    0:01:23   |    <700M     |    0:07:20   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
-| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <1.3G     |    0:05:33   |    <3.8G     |    0:07:20   |
+| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <1.3G     |    0:05:33   |    <3.8G     |    0:36:49   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 For T47D (40K) and K562 (40K), the results are based on the whole datasets.
+
 For K562 (10K), *toCooler* read and stored the whole datasets, but *pyBHFDR* and *pyHICCUPS* only performed loop calling on chromosome 1.
+If your computer has sufficient memory, both *pyBHFDR* and *pyHICCUPS* are able to complete on all chromosomes **within 1 hour**
+under multi-process mode (``--nproc``).
 
 Release Notes
 =============
 
 Version 0.2.0-r1 (08/26/2018)
 -----------------------------
-1. Speed up the program by dynamically limiting donut width
-2. Add performance table in README.rst
+1. Speeded up the program by dynamically limiting donut width
+2. Added performance table in README.rst
 
 Version 0.2.0 (08/25/2018)
 --------------------------
-1. Add vertical and horizontal backgrounds 
-2. Add additional filtering based on dbscan clusters and more stringent q value thresholds
-3. Fix bugs in storing interchromosomal data
+1. Added vertical and horizontal backgrounds 
+2. Added additional filtering based on dbscan clusters and more stringent q value thresholds
+3. Fixed bugs in storing interchromosomal data
 
 Version 0.1.1 (08/24/2018)
 --------------------------
@@ -301,13 +304,12 @@ Version 0.1.1 (08/24/2018)
 Version 0.1.0 (08/22/2018)
 --------------------------
 1. The first release.
-2. Add *toCooler* and *peak-plot*.
-3. Add multiple process support.
+2. Added *toCooler* and *peak-plot*.
+3. Added multiple process support.
 
-Pre-distribution (05/04/2015)
+Pre-Release (05/04/2015)
 -----------------------------
-1. Implement core algorithms of BH-FDR and HICCUPS
-2. Immature interface
+1. Implemented core algorithms of BH-FDR and HICCUPS
 
 
 

@@ -45,7 +45,7 @@ def getargs():
                          'sampled. Set it to 3 at 20 kb, 5 at 10 kb, and 7 at 5 kb.')
     group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.1, help = 'Significant Level.')
-    group_2.add_argument('--sumq', type = float, default = 0.08,
+    group_2.add_argument('--sumq', type = float, default = 0.1,
                          help = '''During the additional filtering, original peak pixels would be
                          filtered out if there are no other peak pixels located in its neighborhood
                          and the sum of its 4 q-values is greater than this threshold.''')
