@@ -231,7 +231,7 @@ Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak
 
 For BH-FDR peaks::
 
-    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.0001
+    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.00001
 
 The output figure should look like this:
 
@@ -241,7 +241,7 @@ The output figure should look like this:
 
 For HICCUPS peaks::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.1
+    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.01
 
 And the output plot:
 
