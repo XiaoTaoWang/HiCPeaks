@@ -45,6 +45,10 @@ def getargs():
                          'sampled. Set it to 3 at 20 kb, 5 at 10 kb, and 7 at 5 kb.')
     group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.1, help = 'Significant Level.')
+    group_2.add_argument('--sumq', type = float, default = 0.08,
+                         help = '''During the additional filtering, original peak pixels would be
+                         filtered out if there are no other peak pixels located in its neighborhood
+                         and the sum of its 4 q-values is greater than this threshold.''')
     group_2.add_argument('--maxapart', type = int, default = 5000000, help = 'Maximum genomic'
                          ' distance between two involved loci.')
     group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
@@ -92,6 +96,7 @@ def run():
                    '# Donut width = {}'.format(args.ww),
                    '# Maximum donut width = {}'.format(args.maxww),
                    '# Significant Level = {}'.format(args.siglevel),
+                   '# Sum of 4 q-values = {}'.format(args.sumq),
                    '# Maximum Genomic distance = {}'.format(args.maxapart),
                    '# Number of Processes = {}'.format(args.nproc)
                    ]
@@ -105,7 +110,7 @@ def run():
         from sklearn import isotonic
 
         def worker(tuple_arg):
-            Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
+            Lib, key, pw, ww, siglevel, sumq, maxww, maxapart, resolution = tuple_arg
             logger.info('Chromosome %s ...', key)
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
             cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
@@ -135,11 +140,11 @@ def run():
             biases = np.zeros_like(tmp)
             biases[mask] = 1/tmp[mask]
 
-            Donuts, LL = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, key,
-                                pw=pw, ww=ww, sig=siglevel, maxww=maxww, maxapart=maxapart,
-                                res=resolution)
+            Donuts, LL, VB, HB = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, key,
+                                        pw=pw, ww=ww, sig=siglevel, sumq=sumq, maxww=maxww, maxapart=maxapart,
+                                        res=resolution)
             
-            return key, Donuts, LL
+            return key, Donuts, LL, VB, HB
         
         logger.info('Loading Hi-C data ...')
         Lib = cooler.Cooler(args.path)
@@ -154,20 +159,21 @@ def run():
         logger.info('Calling Peaks ...')
         OF = open(args.output, 'wb')
         head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'IF', 'D-Enrichment', 'D-pvalue', 'D-qvalue',
-                          'LL-Enrichment', 'LL-pvalue', 'LL-qvalue']) + '\n'
+                          'LL-Enrichment', 'LL-pvalue', 'LL-qvalue', 'V-Enrichment', 'V-pvalue', 'V-qvalue',
+                          'H-Enrichment', 'H-pvalue', 'H-qvalue']) + '\n'
         OF.write(head)
         
         Params = []
         for key in Lib.chromnames:
             if ((not args.chroms) or (key.isdigit() and '#' in args.chroms) or (key in args.chroms)):
-                Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.maxww, args.maxapart, resolution))
+                Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.sumq, args.maxww, args.maxapart, resolution))
         
         results = map_(worker, Params)
 
-        for key, Donuts, LL in results:
+        for key, Donuts, LL, VB, HB in results:
             for i in Donuts:
-                lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{4:.4g}\t{5:.4g}\t{6:.4g}\t{7:.4g}\t{8:.4g}\t{9:.4g}\n'
-                contents = (key,) + i + Donuts[i] + LL[i][1:]
+                lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{4:.4g}\t{5:.4g}\t{6:.4g}\t{7:.4g}\t{8:.4g}\t{9:.4g}\t{10:.4g}\t{11:.4g}\t{12:.4g}\t{13:.4g}\t{14:.4g}\t{15:.4g}\n'
+                contents = (key,) + i + Donuts[i] + LL[i][1:] + VB[i][1:] + HB[i][1:]
                 line = lineFormat.format(*contents)
                 OF.write(line)        
                     
@@ -176,12 +182,13 @@ def run():
                             
         logger.info('Done!')
 
-def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, sig=0.05, maxww=20,
+def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, sig=0.1, sumq=0.08, maxww=10,
             maxapart=2000000, res=10000):
     
     # Necessary Modules
     from scipy.stats import poisson
     from statsmodels.sandbox.stats.multicomp import multipletests
+    from sklearn.cluster import dbscan
     
     logger = logging.getLogger()
 
@@ -244,7 +251,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     Mask = ((yi - xi) >= ww) & ((yi - xi) <= (maxapart // res))
     xi = xi[Mask]
     yi = yi[Mask]
-    flocals = ['K', 'Y']
+    flocals = ['K', 'Y', 'V', 'H'] # V <-> H
     bSV = {}; bEV = {}
     for fl in flocals:
         bSV[fl] = np.zeros(xi.size)
@@ -257,7 +264,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     
     iniNum = xi.size
     
-    logger.info('Chrom:{0}, Two local neighborhoods, two expected matrices ...'.format(chrom))
+    logger.info('Chrom:{0}, Four local neighborhoods, four expected matrices ...'.format(chrom))
     for w in range(ww, maxww + 1):
         ws = 2 * w + 1
         bS = {}; bE = {}
@@ -270,6 +277,10 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
         P_1 = set([(i,j) for i in range(w+1, ws) for j in range(w)])
         P_2 = set([(i,j) for i in range(w+1, ps+w-pw) for j in range(w-pw, w)])
         P2 = P_1 - P_2 # Lower-left Region
+        P_v_1 = set([(i,j) for i in range(w-1, w+2) for j in range(w-pw)]) # higher interaction
+        P_v_2 = set([(i,j) for i in range(w-1, w+2) for j in range(ps+w-pw, ws)])
+        P_h_1 = set([(i,j) for i in range(ps+w-pw, ws) for j in range(w-1, w+2)]) # higher interaction
+        P_h_2 = set([(i,j) for i in range(w-pw) for j in range(w-1, w+2)])
 
         ss = range(ws)
         Pool_Diags = {}
@@ -299,15 +310,29 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
                     Pool_cDiags[(i,j)].append(extCDiags[w][oi][starti:endi])
         
         for key in Pool_Diags:
+            cDiags_matrix = sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
+            EDiags_matrix = sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
             if (key[0] != w) and (key[1] != w) and (key not in P1) and (key not in P2):
-                bS['K'] = bS['K'] + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
-                bE['K'] = bE['K'] + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
+                bS['K'] = bS['K'] + cDiags_matrix
+                bE['K'] = bE['K'] + EDiags_matrix
             if key in P2:
-                bS['K'] = bS['K'] + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
-                bE['K'] = bE['K'] + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
-                bS['Y'] = bS['Y'] + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
-                bE['Y'] = bE['Y'] + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
+                bS['K'] = bS['K'] + cDiags_matrix
+                bE['K'] = bE['K'] + EDiags_matrix
+                bS['Y'] = bS['Y'] + cDiags_matrix
+                bE['Y'] = bE['Y'] + EDiags_matrix
                 Reads = Reads + sparse.diags(Pool_Diags[key], np.arange(num) + (key[0] - key[1]), format = 'csr')
+            if key in P_v_1:
+                bS['V'] = bS['V'] + cDiags_matrix
+                bE['V'] = bE['V'] + EDiags_matrix
+            if key in P_v_2:
+                bS['V'] = bS['V'] - cDiags_matrix
+                bE['V'] = bE['V'] - EDiags_matrix
+            if key in P_h_1:
+                bS['H'] = bS['H'] + cDiags_matrix
+                bE['H'] = bE['H'] + EDiags_matrix
+            if key in P_h_2:
+                bS['H'] = bS['H'] - cDiags_matrix
+                bE['H'] = bE['H'] - EDiags_matrix
                 
         Txi = xi[RefIdx]
         Tyi = yi[RefIdx]
@@ -335,7 +360,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     
     RefMask[RefIdx] = False
     
-    Mask = (bEV['K'] != 0) & (bEV['Y'] != 0) & RefMask
+    Mask = (bEV['K'] != 0) & (bEV['Y'] != 0) & (bEV['V'] != 0) & (bEV['H'] != 0) & RefMask
     xi = xi[Mask]
     yi = yi[Mask]
     bRV = {}
@@ -353,7 +378,8 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
         cEM[fl] = EM.multiply(bR[fl].tocsr())
     
     logger.info('Chrom:{0}, Poisson Models and Benjamini-Hochberg Correcting for lambda chunks ...'.format(chrom))
-    Description = {'K': 'Donut backgrounds', 'Y': 'Lower-left backgrounds'}
+    Description = {'K': 'Donut backgrounds', 'Y': 'Lower-left backgrounds',
+                   'V': 'Vertical backgrounds', 'H': 'Horizontal backgrounds'}
     xpos = {}; ypos = {}; Ovalues = {}; Evalues = {}
     Fold = {}; pvalues = {}; qvalues = {}
     gaps = set(np.where(np.array(M.sum(axis=1)).ravel() == 0)[0])
@@ -427,18 +453,32 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
         pvalues[fl] = pvalue
         qvalues[fl] = qvalue
     
-    logger.info('Chrom:{0}, Combine two local filters ...'.format(chrom))
+    logger.info('Chrom:{0}, Combine four local filters ...'.format(chrom))
     
-    preDonuts = dict(zip(zip(xpos['K']*res, ypos['K']*res), zip(Ovalues['K'], Fold['K'], pvalues['K'], qvalues['K'])))
-    preLL = dict(zip(zip(xpos['Y']*res, ypos['Y']*res), zip(Ovalues['Y'], Fold['Y'], pvalues['Y'], qvalues['Y'])))
+    preDonuts = dict(zip(zip(xpos['K'], ypos['K']), zip(Ovalues['K'], Fold['K'], pvalues['K'], qvalues['K'])))
+    preLL = dict(zip(zip(xpos['Y'], ypos['Y']), zip(Ovalues['Y'], Fold['Y'], pvalues['Y'], qvalues['Y'])))
+    preVB = dict(zip(zip(xpos['V'], ypos['V']), zip(Ovalues['V'], Fold['V'], pvalues['V'], qvalues['V'])))
+    preHB = dict(zip(zip(xpos['H'], ypos['H']), zip(Ovalues['H'], Fold['H'], pvalues['H'], qvalues['H'])))
     
-    commonPos = set(preDonuts.keys()) & set(preLL.keys())
-    Donuts = {}; LL = {}
-    for pos in commonPos:
-        Donuts[pos] = preDonuts[pos]
-        LL[pos] = preLL[pos]
+    commonPos = set(preDonuts.keys()) & set(preLL.keys()) & set(preVB.keys()) & set(preHB.keys())
+    Donuts = {}; LL = {}; VB = {}; HB = {}
+    candi = sorted(commonPos)
+    SUMQ = np.array([preDonuts[candi[i]][3]+preLL[candi[i]][3]+preVB[candi[i]][3]+preHB[candi[i]][3] for i in xrange(len(candi))])
+    candi = np.array(candi)
+    mask = SUMQ <= sumq
+    if len(candi) > 2:
+        _, labels = dbscan(candi, eps=1.1, min_samples=2)
+        incluster = labels >= 0
+    mask = mask | incluster
+    candi = candi[mask]
+    for pos in candi:
+        key = (pos[0]*res, pos[1]*res)
+        Donuts[key] = preDonuts[tuple(pos)]
+        LL[key] = preLL[tuple(pos)]
+        VB[key] = preVB[tuple(pos)]
+        HB[key] = preHB[tuple(pos)]
     
-    return Donuts, LL
+    return Donuts, LL, VB, HB
 
 def lambdachunk(E):
     

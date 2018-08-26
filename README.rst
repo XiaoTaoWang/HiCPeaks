@@ -107,9 +107,8 @@ Overview
   near the diagonal (<2Mb), HICCUPS is able to generalize itself to any genomic distance in theory. Here, *pyHICCUPS*
   keeps all main concepts of the original algorithm except for these points which may be fixed in the near future:
 
-  1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
-  2. *pyHICCUPS* doesn't implement additional filtering of peak pixels based on local enrichment thresholds and local
-     clusters.
+  1. *pyHICCUPS* doesn't implement additional filtering of peak pixels based on local enrichment thresholds.
+  2. *pyHICCUPS* doesn't cluster original nearby peak pixels into a single peak call.
   3. I haven't implemented the function to combine peak annotations at different resolutions.
   4. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
 
@@ -203,7 +202,7 @@ pyBHFDR and pyHICCUPS
 ---------------------
 With cooler URI, you can perform peak annotation by *pyBHFDR* or *pyHICCUPS*::
 
-    $ pyBHFDR -O K562-MboI-BHFDR-loops.txt -p K562-MboI-parts.cool::40000 -C 21 22 --pw 1 --ww 3 --maxww 10
+    $ pyBHFDR -O K562-MboI-BHFDR-loops.txt -p K562-MboI-parts.cool::40000 -C 21 22 --pw 1 --ww 3
 
 Or::
 
@@ -215,15 +214,16 @@ Before step to the next section, let's list the contents under current working d
 
     $ ls -lh
 
-    total 2968
-    drwxr-xr-x  5 xtwang  staff   160B Aug 21 23:25 40K
-    -rw-r--r--  1 xtwang  staff    32K Aug 22 11:12 BHFDR.log
-    -rw-r--r--  1 xtwang  staff    68K Aug 22 11:13 HICCUPS.log
-    -rw-r--r--  1 xtwang  staff   270K Aug 22 11:12 K562-MboI-BHFDR-loops.txt
-    -rw-r--r--  1 xtwang  staff   185K Aug 22 11:13 K562-MboI-HICCUPS-loops.txt
-    -rw-r--r--  1 xtwang  staff   704K Aug 22 10:31 K562-MboI-parts.cool
-    -rw-r--r--  1 xtwang  staff    18B Aug 21 23:25 datasets
-    -rw-r--r--  1 xtwang  staff    29K Aug 22 10:31 tocooler.log
+    total 2360
+    drwxr-xr-x  5 xtwang  staff   160B Aug 25 23:18 40K
+    -rw-r--r--  1 xtwang  staff   3.4K Aug 25 23:19 BHFDR.log
+    -rw-r--r--  1 xtwang  staff   7.3K Aug 25 23:20 HICCUPS.log
+    -rw-r--r--  1 xtwang  staff   268K Aug 25 23:19 K562-MboI-BHFDR-loops.txt
+    -rw-r--r--  1 xtwang  staff    38K Aug 25 23:20 K562-MboI-HICCUPS-loops.txt
+    -rw-r--r--  1 xtwang  staff   704K Aug 25 23:19 K562-MboI-parts.cool
+    -rw-r--r--  1 xtwang  staff    18B Aug 25 23:18 datasets
+    -rw-r--r--  1 xtwang  staff   293B Aug 25 23:18 hg38.chromsizes
+    -rw-r--r--  1 xtwang  staff    29K Aug 25 23:19 tocooler.log
 
 Peak Visualization
 ------------------
@@ -231,7 +231,7 @@ Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak
 
 For BH-FDR peaks::
 
-    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.01
+    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.0001
 
 The output figure should look like this:
 
@@ -241,7 +241,7 @@ The output figure should look like this:
 
 For HICCUPS peaks::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.01
+    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 40000000 -E 43000000 --correct --siglevel 0.1
 
 And the output plot:
 

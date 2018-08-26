@@ -90,6 +90,7 @@ def run():
         start = start//res * res
         end = end//res * res
         M = Lib.matrix(balance=args.correct, sparse=False).fetch((chrom,start,end))
+        M[np.isnan(M)] = 0
     
         nonzero = M[np.nonzero(M)]
         vmax = np.percentile(nonzero, 95)
@@ -103,11 +104,11 @@ def run():
             loops = loops[(loops['chr']==chrom)]
             loops = loops[loops['qvalue']<siglevel]
         else:
-            loopType = np.dtype({'names':['chr','loc1','loc2','Q1','Q2'],
-                                 'formats':['S5', np.int, np.int, np.float, np.float]})
-            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,6,9])
+            loopType = np.dtype({'names':['chr','loc1','loc2','Q1','Q2','Q3','Q4'],
+                                 'formats':['S5', np.int, np.int, np.float, np.float, np.float, np.float]})
+            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,6,9,12,15])
             loops = loops[(loops['chr']==chrom)]
-            loops = loops[(loops['Q1']<siglevel) & (loops['Q2']<siglevel)]
+            loops = loops[(loops['Q1']<siglevel) & (loops['Q2']<siglevel) & (loops['Q3']<siglevel) & (loops['Q4']<siglevel)]
     
         # Mask original matrix using loop data
         mask = (loops['loc1']>=start) & (loops['loc2']<end)
