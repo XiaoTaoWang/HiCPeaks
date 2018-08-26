@@ -251,7 +251,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww =
     RefIdx = np.arange(xi.size)
     RefMask = np.ones(xi.size, dtype = bool)
     
-    iniNum = xi.size
+    iniNum = totalNum = xi.size
     
     logger.info('Chrom:{0}, Calculate the expected matrix ...'.format(chrom))
     for w in range(ww, maxww + 1):
@@ -313,9 +313,15 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww =
         RefIdx = RefIdx[RNums < 16]
             
         iniNum = RefIdx.size
+
+        left_Ratio = iniNum/float(totalNum)
         
         if Valid_Ratio < 0.3:
             logger.info('Chrom:{0},    Ratio of valid contact is too small, break the loop ...'.format(chrom))
+            break
+        
+        if left_Ratio < 0.01:
+            logger.info('Chrom:{0},    Few contacts are left, break the loop ...'.format(chrom))
             break
         
         logger.info('Chrom:{0},    Continue ...'.format(chrom))

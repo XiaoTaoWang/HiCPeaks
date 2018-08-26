@@ -258,6 +258,7 @@ Performance
 The tables below show the performance test of *toCooler*, *pyBHFDR* and *pyHICCUPS* with low (T47D) and high (K562)
 sequencing data, at low (40K) and high (10K) resolutions.
 
+- The original Hi-C data was stored in TXT
 - Number of proccesses: 1
 - Valid contacts: total number of non-zero pixels on intra-chromosomal matrices
 - Running time format: hr: min: sec
@@ -268,6 +269,10 @@ sequencing data, at low (40K) and high (10K) resolutions.
 |                               | Memory Usage | Running time | Memory Usage | Running time | Memory Usage | Running time |
 +==============+================+==============+==============+==============+==============+==============+==============+
 | T47D (40K)   |   25,216,875   |    <600M     |    0:07:55   |    <300M     |    0:01:16   |    <600M     |    0:14:22   |
++--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
+| K562 (40K)   |   49,088,465   |    <1.2G     |    0:21:37   |    <500M     |    0:01:23   |    <700M     |    0:07:20   |
++--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
+| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <500M     |    0:01:23   |    <700M     |    0:07:20   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 
