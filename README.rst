@@ -258,18 +258,17 @@ Performance
 The tables below show the performance test of *toCooler*, *pyBHFDR* and *pyHICCUPS* with low (T47D) and high (K562)
 sequencing data, at low (40K) and high (10K) resolutions.
 
-- Valid contacts: total number of non-zero pixels on intra-chromosomal matrices
 - Number of proccesses: 1
+- Valid contacts: total number of non-zero pixels on intra-chromosomal matrices
+- Running time format: hr: min: sec
 
-*toCooler*:
-
-+--------------+----------------+--------------+-------------------------------+
-| Datasets     | Valid contacts |                 toCooler                     |
-+--------------+----------------+--------------+-------------------------------+
-|                               | Memory Usage | Running time (hr: min: sec)   |
-+==============+================+==============+===============================+
-| T47D (40K)   |   25,216,875   |    <600M     |          0:07:55              |
-+--------------+----------------+--------------+-------------------------------+
++--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
+| Datasets     | Valid contacts |          toCooler           |           pyBHFDR           |          pyHICCUPS          |
++==============+================+==============+==============+==============+==============+==============+==============+
+|                               | Memory Usage | Running time | Memory Usage | Running time | Memory Usage | Running time |
++==============+================+==============+==============+==============+==============+==============+==============+
+| T47D (40K)   |   25,216,875   |    <600M     |    0:07:55   |    <300M     |    0:01:16   |    <600M     |    0:14:22   |
++--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 
 Reference
