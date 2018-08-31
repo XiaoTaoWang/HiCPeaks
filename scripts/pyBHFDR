@@ -256,11 +256,12 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww =
     iniNum = totalNum = xi.size
     
     logger.info('Chrom:{0}, Calculate the expected matrix ...'.format(chrom))
+    bS = sparse.csr_matrix((chromLen, chromLen))
+    bE = sparse.csr_matrix((chromLen, chromLen))
+    Reads = sparse.csr_matrix((chromLen, chromLen))
+    limitCompute = False
     for w in range(ww, maxww + 1):
         ws = 2 * w + 1
-        bS = sparse.csr_matrix((chromLen, chromLen))
-        bE = sparse.csr_matrix((chromLen, chromLen))
-        Reads = sparse.csr_matrix((chromLen, chromLen))
         logger.info('Chrom:{0},    Current window width: {1}'.format(chrom, w))
         P1 = set([(i,j) for i in range(w-pw, ps+w-pw) for j in range(w-pw, ps+w-pw)])
         P_1 = set([(i,j) for i in range(w+1, ws) for j in range(w)])
@@ -273,6 +274,9 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww =
         Pool_cDiags = {}
         for i in ss:
             for j in ss:
+                bgloc = max(abs(i-w), abs(j-w)) # mark the radial location on background matrix
+                if limitCompute and (bgloc<w):
+                    continue
                 Pool_Diags[(i,j)] = []
                 Pool_EDiags[(i,j)] = []
                 Pool_cDiags[(i,j)] = []
@@ -293,6 +297,8 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww =
                         endi = starti + chromLen + (x[oi] + i - j)
                     Pool_EDiags[(i,j)].append(extEDiags[w][oi][starti:endi])
                     Pool_cDiags[(i,j)].append(extCDiags[w][oi][starti:endi])
+        
+        limitCompute = True
         
         for key in Pool_Diags:
             if (key[0] != w) and (key[1] != w) and (key not in P1):
