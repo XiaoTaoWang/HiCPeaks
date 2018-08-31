@@ -4,7 +4,7 @@ Created on Wed Jun 27 16:48:22 2018
 
 @author: XiaoTao Wang
 """
-
+from __future__ import division
 import os, sys, tempfile, logging, h5py
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ def fetchChromSizes(assembly, chroms):
     pread = subprocess.Popen(['fetchChromSizes',assembly], stdout=subprocess.PIPE)
     inStream = pread.stdout
     for line in inStream:
-        parse = line.rstrip().split()
+        parse = line.decode().rstrip().split()
         c, s = parse[0].lstrip('chr'), parse[1]
         check = ((not chroms) or (c.isdigit() and ('#' in chroms)) or (c in chroms))
         if check:
@@ -38,7 +38,7 @@ def fetchChromSizes(assembly, chroms):
 def readChromSizes(chromsizes_file, chroms):
 
     chromsizes = {}
-    with open(chromsizes_file, 'rb') as source:
+    with open(chromsizes_file, 'r') as source:
         for line in source:
             parse = line.rstrip().split()
             c, s = parse[0].lstrip('chr'), parse[1]
@@ -179,7 +179,7 @@ class Genome(object):
 
         self.outfil = os.path.abspath(os.path.expanduser(outfil))
         if os.path.exists(self.outfil):
-            log.error('Cooler file {} already exists, exit ...')
+            log.error('Cooler file {} already exists, exit ...'.format(self.outfil))
             sys.exit(1)
         self.chroms = set(chroms)
         self.onlyIntra = onlyIntra
@@ -195,7 +195,7 @@ class Genome(object):
             chromsizes = fetchChromSizes(assembly, self.chroms)
         chromlist = chromsizes.keys()
         # sort chromosome labels
-        tmp = map(str, sorted(map(int, [i for i in chromlist if i.isdigit()])))
+        tmp = list(map(str, sorted(map(int, [i for i in chromlist if i.isdigit()]))))
         nondigits = [i for i in chromlist if not i.isdigit()]
         for i in ['X','Y','M']:
             if i in nondigits:
@@ -234,7 +234,7 @@ class Genome(object):
         
         log.info('Extract and save data into cooler format for each resolution ...')
         for res in self.Map:
-            log.info('Current resolution: %dbp', res)
+            log.info('Current resolution: {}bp'.format(res))
             byres = self.Map[res]
             # Extract parts of chromsizes
             subset = []
@@ -353,7 +353,7 @@ class Genome(object):
         def _each(chrom):
             clen = chromsizes[chrom]
             n_bins = int(np.ceil(clen / res))
-            return n_bins+1
+            return n_bins
         
         data = [_each(c) for c in chromsizes.index]
         n_bins = pd.Series(data, index=chromsizes.index)

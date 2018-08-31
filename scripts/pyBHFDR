@@ -82,6 +82,8 @@ def run():
         # Add Handlers
         logger.addHandler(console)
         logger.addHandler(filehandler)
+
+        logger.info('Python Version: {}'.format(sys.version.split()[0]))
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
@@ -152,7 +154,7 @@ def run():
             map_ = pool.map
         
         logger.info('Calling Peaks ...')
-        OF = open(args.output, 'wb')
+        OF = open(args.output, 'w')
         head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'IF', 'Fold-Enrichment', 'pvalue', 'qvalue']) + '\n'
         OF.write(head)
         
@@ -164,7 +166,7 @@ def run():
         results = map_(worker, Params)
 
         for key, xpos, ypos, Ovalues, Fold, pvalues, qvalues in results:
-            for i in xrange(xpos.size):
+            for i in np.arange(xpos.size):
                 lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{4:.4g}\t{5:.4g}\t{6:.4g}\n'
                 line = lineFormat.format(key, xpos[i]*resolution, ypos[i]*resolution, Ovalues[i], Fold[i], pvalues[i], qvalues[i])
                 OF.write(line)
@@ -372,7 +374,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww =
     gaps = set(np.where(np.array(M.sum(axis=1)).ravel() == 0)[0])
     if len(gaps) > 0:
         fIdx = []
-        for i in xrange(xpos.size):
+        for i in np.arange(xpos.size):
             lower = (xpos[i] - 5) if (xpos[i] > 5) else 0
             upper = (xpos[i] + 5) if ((xpos[i] + 5) < chromLen) else (chromLen - 1)
             cregion_1 = range(lower, upper)

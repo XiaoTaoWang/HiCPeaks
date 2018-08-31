@@ -86,6 +86,8 @@ def run():
         # Add Handlers
         logger.addHandler(console)
         logger.addHandler(filehandler)
+
+        logger.info('Python Version: {}'.format(sys.version.split()[0]))
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',
@@ -157,7 +159,7 @@ def run():
             map_ = pool.map
         
         logger.info('Calling Peaks ...')
-        OF = open(args.output, 'wb')
+        OF = open(args.output, 'w')
         head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'IF', 'D-Enrichment', 'D-pvalue', 'D-qvalue',
                           'LL-Enrichment', 'LL-pvalue', 'LL-qvalue', 'V-Enrichment', 'V-pvalue', 'V-qvalue',
                           'H-Enrichment', 'H-pvalue', 'H-qvalue']) + '\n'
@@ -434,7 +436,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
         
         if len(gaps) > 0:
             fIdx = []
-            for i in xrange(xi.size):
+            for i in np.arange(xi.size):
                 lower = (xi[i] - 5) if (xi[i] > 5) else 0
                 upper = (xi[i] + 5) if ((xi[i] + 5) < chromLen) else (chromLen - 1)
                 cregion_1 = range(lower, upper)
@@ -469,7 +471,7 @@ def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=2, ww=5, 
     commonPos = set(preDonuts.keys()) & set(preLL.keys()) & set(preVB.keys()) & set(preHB.keys())
     Donuts = {}; LL = {}; VB = {}; HB = {}
     candi = sorted(commonPos)
-    SUMQ = np.array([preDonuts[candi[i]][3]+preLL[candi[i]][3]+preVB[candi[i]][3]+preHB[candi[i]][3] for i in xrange(len(candi))])
+    SUMQ = np.array([preDonuts[candi[i]][3]+preLL[candi[i]][3]+preVB[candi[i]][3]+preHB[candi[i]][3] for i in np.arange(len(candi))])
     candi = np.array(candi)
     mask = SUMQ <= sumq
     if len(candi) > 2:

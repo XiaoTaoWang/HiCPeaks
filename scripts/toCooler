@@ -92,6 +92,8 @@ def run():
         # Add Handlers
         logger.addHandler(console)
         logger.addHandler(filehandler)
+
+        logger.info('Python Version: {}'.format(sys.version.split()[0]))
         
         ## Logging for argument setting
         arglist = ['# ARGUMENT LIST:',

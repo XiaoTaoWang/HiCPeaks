@@ -99,13 +99,13 @@ def run():
         check = open(loop_file, 'rb').readline().rstrip().split()
         if len(check)==7:
             loopType = np.dtype({'names':['chr','loc1','loc2','qvalue'],
-                                 'formats':['S5', np.int, np.int, np.float]})
+                                 'formats':['U5', np.int, np.int, np.float]})
             loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,6])
             loops = loops[(loops['chr']==chrom)]
             loops = loops[loops['qvalue']<siglevel]
         else:
             loopType = np.dtype({'names':['chr','loc1','loc2','Q1','Q2','Q3','Q4'],
-                                 'formats':['S5', np.int, np.int, np.float, np.float, np.float, np.float]})
+                                 'formats':['U5', np.int, np.int, np.float, np.float, np.float, np.float]})
             loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,6,9,12,15])
             loops = loops[(loops['chr']==chrom)]
             loops = loops[(loops['Q1']<siglevel) & (loops['Q2']<siglevel) & (loops['Q3']<siglevel) & (loops['Q4']<siglevel)]

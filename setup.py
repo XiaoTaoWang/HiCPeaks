@@ -16,14 +16,15 @@ from distutils.core import setup
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-if (sys.version_info.major != 2) or (sys.version_info.minor != 7):
-    print 'PYTHON 2.7 IS REQUIRED. YOU ARE CURRENTLY USING PYTHON ' + sys.version
+if ((sys.version_info.major==2) and (sys.version_info.minor!=7)) or \
+   ((sys.version_info.major==3) and (sys.version_info.minor<5)):
+    print('PYTHON 2.7/3.5+ IS REQUIRED. YOU ARE CURRENTLY USING PYTHON {}'.format(sys.version.split()[0]))
     sys.exit(2)
 
 # Guarantee Unix Format
 for src in glob.glob('scripts/*'):
-    text = open(src, 'rb').read().replace('\r\n', '\n')
-    open(src, 'wb').write(text)
+    text = open(src, 'r').read().replace('\r\n', '\n')
+    open(src, 'w').write(text)
 
 setup(
     name = 'hicpeaks',
