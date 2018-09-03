@@ -10,7 +10,7 @@ required:
 
 Python requirements:
 
-a) Python (2.7, not compatible with 3.x for now)
+a) Python 2.7/3.5+
 b) Multiprocess
 c) Numpy
 d) Scipy
@@ -31,7 +31,7 @@ Install Conda
 -------------
 .. note:: If you have the Anaconda Distribution installed, you already have it.
 
-Download the latest `Linux Miniconda installer for Python 2.7 <https://conda.io/miniconda.html>`_,
+Download the latest `Linux Miniconda installer <https://conda.io/miniconda.html>`_,
 then in your terminal window type the following and follow the prompts on the installer screens::
 
     $ bash Miniconda2-latest-Linux-x86_64.sh
@@ -215,16 +215,16 @@ Before step to the next section, let's list the contents under current working d
 
     $ ls -lh
 
-    total 2360
-    drwxr-xr-x  5 xtwang  staff   160B Aug 25 23:18 40K
-    -rw-r--r--  1 xtwang  staff   3.4K Aug 25 23:19 BHFDR.log
-    -rw-r--r--  1 xtwang  staff   7.3K Aug 25 23:20 HICCUPS.log
-    -rw-r--r--  1 xtwang  staff   268K Aug 25 23:19 K562-MboI-BHFDR-loops.txt
-    -rw-r--r--  1 xtwang  staff    38K Aug 25 23:20 K562-MboI-HICCUPS-loops.txt
-    -rw-r--r--  1 xtwang  staff   704K Aug 25 23:19 K562-MboI-parts.cool
-    -rw-r--r--  1 xtwang  staff    18B Aug 25 23:18 datasets
-    -rw-r--r--  1 xtwang  staff   293B Aug 25 23:18 hg38.chromsizes
-    -rw-r--r--  1 xtwang  staff    29K Aug 25 23:19 tocooler.log
+    total 1744
+    drwxr-xr-x  5 xtwang  staff   160B Sep  3 14:55 40K
+    -rw-r--r--  1 xtwang  staff   3.9K Sep  3 14:58 BHFDR.log
+    -rw-r--r--  1 xtwang  staff    17K Sep  3 14:59 HICCUPS.log
+    -rw-r--r--  1 xtwang  staff    16K Sep  3 14:58 K562-MboI-BHFDR-loops.txt
+    -rw-r--r--  1 xtwang  staff    19K Sep  3 14:59 K562-MboI-HICCUPS-loops.txt
+    -rw-r--r--  1 xtwang  staff   704K Sep  3 14:57 K562-MboI-parts.cool
+    -rw-r--r--  1 xtwang  staff    18B Sep  3 14:55 datasets
+    -rw-r--r--  1 xtwang  staff   293B Sep  3 14:55 hg38.chromsizes
+    -rw-r--r--  1 xtwang  staff    29K Sep  3 14:57 tocooler.log
 
 Peak Visualization
 ------------------
@@ -232,7 +232,7 @@ Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak
 
 For BH-FDR peaks::
 
-    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.00001
+    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.05
 
 The output figure should look like this:
 
@@ -242,17 +242,12 @@ The output figure should look like this:
 
 For HICCUPS peaks::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.01
+    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.1
 
 And the output plot:
 
 .. image:: ./figures/test-HICCUPS.png
         :align: center
-
-Notes
------
-Although *hicpeaks* currently cannot perform further filtering based on local enrichment thresholds, you can do
-it by yourself with output annotations of *pyBHFDR* and *pyHICCUPS*.
 
 Performance
 ===========
@@ -271,11 +266,11 @@ sequencing data, at low (40K) and high (10K) resolutions.
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 |                               | Memory Usage | Running time | Memory Usage | Running time | Memory Usage | Running time |
 +==============+================+==============+==============+==============+==============+==============+==============+
-| T47D (40K)   |   25,216,875   |    <600M     |    0:07:55   |    <300M     |    0:01:16   |    <600M     |    0:14:22   |
+| T47D (40K)   |   25,216,875   |    <600M     |    0:07:55   |    <300M     |    0:01:16   |    <600M     |    0:04:17   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
-| K562 (40K)   |   49,088,465   |    <1.2G     |    0:21:37   |    <500M     |    0:01:23   |    <700M     |    0:07:20   |
+| K562 (40K)   |   49,088,465   |    <1.2G     |    0:21:37   |    <500M     |    0:01:23   |    <1.0G     |    0:03:21   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
-| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <1.3G     |    0:05:33   |    <3.8G     |    0:36:49   |
+| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <1.3G     |    0:05:33   |    <4.0G     |    1:57:33   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 For T47D (40K) and K562 (40K), the results are based on the whole datasets.
@@ -286,6 +281,13 @@ under multi-process mode (``--nproc``).
 
 Release Notes
 =============
+Version 0.3.0 (09/03/2018)
+--------------------------
+1. Remove horizontal and vertical backgrounds for performance
+2. Support multiple parameters (pw and ww)
+3. Python 3 support
+4. Optimize the calculation
+5. Code refactoring
 
 Version 0.2.0-r1 (08/26/2018)
 -----------------------------
