@@ -107,7 +107,7 @@ Overview
   keeps all main concepts of the original algorithm except for these points which may be fixed in the near future:
 
   1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
-  2. *pyHICCUPS* cannot combine peak annotations at different resolutions automatically.
+  2. *pyHICCUPS* cannot combine peak annotations at different resolutions.
   3. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
 
   Although these differences, peaks returned by *pyHICCUPS* are quite consistent with our visual inspection, and
@@ -255,7 +255,9 @@ The tables below show the performance test of *toCooler*, *pyBHFDR* and *pyHICCU
 sequencing data, at low (40K) and high (10K) resolutions.
 
 - Processor: 2.6 GHz Intel Core i7, Memory: 16 GB 2400 MHz DDR4
-- Software version: *hicpeaks 0.2.0-r1*
+- Software version: *hicpeaks 0.3.0*
+- At 40Kb resolution, ``--pw`` and ``--ww`` are set to 1 and 3 respectively; at 10Kb resolution, they are set to 2
+  and 5 respectively.
 - The original Hi-C data is stored in TXT
 - Number of proccesses assigned: 1
 - Valid contacts: total number of non-zero pixels on intra-chromosomal matrices
@@ -266,18 +268,15 @@ sequencing data, at low (40K) and high (10K) resolutions.
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 |                               | Memory Usage | Running time | Memory Usage | Running time | Memory Usage | Running time |
 +==============+================+==============+==============+==============+==============+==============+==============+
-| T47D (40K)   |   25,216,875   |    <600M     |    0:07:55   |    <300M     |    0:01:16   |    <600M     |    0:04:17   |
+| T47D (40K)   |   25,216,875   |    <600M     |    0:07:55   |    <600M     |    0:01:34   |    <600M     |    0:04:17   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
-| K562 (40K)   |   49,088,465   |    <1.2G     |    0:21:37   |    <500M     |    0:01:23   |    <1.0G     |    0:03:21   |
+| K562 (40K)   |   49,088,465   |    <1.2G     |    0:21:37   |    <1.0G     |    0:01:49   |    <1.0G     |    0:03:21   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
-| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <1.3G     |    0:05:33   |    <4.0G     |    1:57:33   |
+| K562 (10K)   |  139,884,876   |    <3.0G     |    1:00:07   |    <2.0G     |    0:24:53   |    <4.0G     |    1:57:33   |
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
-For T47D (40K) and K562 (40K), the results are based on the whole datasets.
-
-For K562 (10K), *toCooler* read and stored the whole datasets, but *pyBHFDR* and *pyHICCUPS* only performed loop calling on chromosome 1.
-If your computer has sufficient memory, both *pyBHFDR* and *pyHICCUPS* are able to complete on all chromosomes **within 1 hour**
-under multi-process mode (``--nproc``).
+.. note:: Both *pyBHFDR* and *pyHICCUPS* support multiple processes (``--nproc``). If your computer has sufficient memory, the
+          calculation should end within 30 minutes.
 
 Release Notes
 =============
@@ -288,6 +287,7 @@ Version 0.3.0 (09/03/2018)
 3. Python 3 support
 4. Optimize the calculation
 5. Code refactoring
+6. Fix bugs when users provide with external .cool files.
 
 Version 0.2.0-r1 (08/26/2018)
 -----------------------------
