@@ -95,9 +95,8 @@ Overview
 
   A CPU-based python implementation for BH-FDR algorithm. Rao et al states in their supplementary material that
   this algorithm is robust enough to obtain all main results of their paper. Compared with HICCUPS, BH-FDR doesn't use
-  λ-chunk in multiple hypothesis test, and only considers the background Donut region when calculating the
-  expected values. Here, *pyBHFDR* follows the algorithm pipelines of [1]_ faithfully except that it doesn't implement
-  the greedy clustering algorithm for original peak pixels.
+  λ-chunk in multiple hypothesis test, and only considers the Donut background region when calculating the
+  expected values.
 
 - pyHICCUPS
 
@@ -107,10 +106,9 @@ Overview
   near the diagonal (<2Mb), HICCUPS is able to generalize itself to any genomic distance in theory. Here, *pyHICCUPS*
   keeps all main concepts of the original algorithm except for these points which may be fixed in the near future:
 
-  1. *pyHICCUPS* doesn't implement additional filtering of peak pixels based on local enrichment thresholds.
-  2. *pyHICCUPS* doesn't cluster original nearby peak pixels into a single peak call.
-  3. I haven't implemented the function to combine peak annotations at different resolutions.
-  4. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
+  1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
+  2. *pyHICCUPS* cannot combine peak annotations at different resolutions automatically.
+  3. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
 
   Although these differences, peaks returned by *pyHICCUPS* are quite consistent with our visual inspection, and
   generally follow the typical loop interaction patterns.
@@ -206,7 +204,10 @@ With cooler URI, you can perform peak annotation by *pyBHFDR* or *pyHICCUPS*::
 
 Or::
 
-    $ pyHICCUPS -O K562-MboI-HICCUPS-loops.txt -p K562-MboI-parts.cool::40000 --pw 1 --ww 3
+    $ pyHICCUPS -O K562-MboI-HICCUPS-loops.txt -p K562-MboI-parts.cool::40000 --pw 1 2 4 --ww 3 5 7
+
+.. note:: *pyHICCUPS* supports multiple parameters since 0.3.0, in which case it will combine peak annotations
+          from different parameter settings automatically.
 
 Type ``pyBHFDR`` or ``pyHICCUPS`` on your terminal to print detailed help information for each parameter.
 
