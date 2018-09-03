@@ -7,9 +7,6 @@
 from __future__ import division
 import argparse, sys, logging, logging.handlers, hicpeaks
 
-import numpy as np
-from scipy import sparse
-
 currentVersion = hicpeaks.__version__
 
 def getargs():
@@ -74,7 +71,7 @@ def run():
         console.setLevel('INFO')
         filehandler.setLevel('INFO')
         # Customizing Formatter
-        formatter = logging.Formatter(fmt = '%(name)-14s %(levelname)-7s @ %(asctime)s: %(message)s',
+        formatter = logging.Formatter(fmt = '%(name)-21s %(levelname)-7s @ %(asctime)s: %(message)s',
                                       datefmt = '%m/%d/%y %H:%M:%S')
         
         console.setFormatter(formatter)
@@ -104,11 +101,13 @@ def run():
         # Package Dependencies
         import cooler
         from multiprocess import Pool
-        from sklearn import isotonic
+        import numpy as np
+        from scipy import sparse
+        from hicpeaks.callers import bhfdr
 
         def worker(tuple_arg):
             Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
-            logger.info('Chromosome %s ...', key)
+            logger.info('Chromosome %s ...', key.lstrip('chr'))
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
             cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
             # Customize Sparse Matrix ...
@@ -117,31 +116,30 @@ def run():
             Diags = [H.diagonal(i) for i in np.arange(num)]
             M = sparse.diags(Diags, np.arange(num), format='csr')
             x = np.arange(args.ww, num)
-            y = []
+            IR = {}
             cDiags = []
             for i in x:
                 diag = cHeatMap.diagonal(i)
                 mask = np.isnan(diag)
                 notnan = diag[np.logical_not(mask)]
-                y.append(notnan.mean())
+                IR[i] = notnan.mean()
                 diag[mask] = 0
                 cDiags.append(diag)
             cM = sparse.diags(cDiags, x, format='csr')
-            IR = isotonic.IsotonicRegression(increasing='auto')
-            IR.fit(x, y)
 
             del H, cHeatMap
 
             tmp = Lib.bins().fetch(key)['weight'].values
-            mask = np.logical_not(tmp==0)
+            mask = np.logical_not((tmp==0) | np.isnan(tmp))
             biases = np.zeros_like(tmp)
             biases[mask] = 1/tmp[mask]
 
-            xpos, ypos, Ovalues, Fold, pvalues, qvalues = pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num,
-                                                                  key, pw=pw, ww=ww, sig=siglevel, maxww=maxww,
-                                                                  maxapart=maxapart, res=resolution)
+            key = key.lstrip('chr')
+
+            pixel_table = bhfdr(M, cM, biases, IR, chromLen, Diags, cDiags, num, key, pw=pw, ww=ww,
+                                sig=siglevel, maxww=maxww, maxapart=maxapart, res=resolution)
             
-            return key, xpos, ypos, Ovalues, Fold, pvalues, qvalues
+            return key, pixel_table
         
         logger.info('Loading Hi-C data ...')
         Lib = cooler.Cooler(args.path)
@@ -155,251 +153,29 @@ def run():
         
         logger.info('Calling Peaks ...')
         OF = open(args.output, 'w')
-        head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'IF', 'Fold-Enrichment', 'pvalue', 'qvalue']) + '\n'
+        head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'centroid_x', 'centroid_y','radius','IF', 'Enrichment',
+                          'pvalue', 'qvalue']) + '\n'
         OF.write(head)
         
         Params = []
         for key in Lib.chromnames:
-            if ((not args.chroms) or (key.isdigit() and '#' in args.chroms) or (key in args.chroms)):
+            chromlabel = key.lstrip('chr')
+            if ((not args.chroms) or (chromlabel.isdigit() and '#' in args.chroms) or (chromlabel in args.chroms)):
                 Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.maxww, args.maxapart, resolution))
         
         results = map_(worker, Params)
 
-        for key, xpos, ypos, Ovalues, Fold, pvalues, qvalues in results:
-            for i in np.arange(xpos.size):
-                lineFormat = '{0}\t{1}\t{2}\t{3:.4g}\t{4:.4g}\t{5:.4g}\t{6:.4g}\n'
-                line = lineFormat.format(key, xpos[i]*resolution, ypos[i]*resolution, Ovalues[i], Fold[i], pvalues[i], qvalues[i])
+        for key, pixel_table in results:
+            for pixel in pixel_table:
+                lineFormat = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6:.3g}\t{7:.3g}\t{8:.3g}\t{9:.3g}\n'
+                content = (key,) + pixel + pixel_table[pixel]
+                line = lineFormat.format(*content)
                 OF.write(line)
                     
         OF.flush()
         OF.close()
                             
         logger.info('Done!')
-
-def pcaller(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5, sig = 0.05, maxww = 20,
-            maxapart = 2000000, res = 10000):
-    
-    # Necessary Modules
-    from scipy.stats import poisson
-    from statsmodels.sandbox.stats.multicomp import multipletests
-    
-    logger = logging.getLogger()
-    
-    # more codes for lower memory
-    # use reference instead of creating new arrays
-    extDiags_ref = []
-    for i in range(num):
-        OneDArray = Diags[i]
-        extODA = np.zeros(chromLen - i + maxww*2)
-        extODA[maxww:-maxww] = OneDArray
-        extDiags_ref.append(extODA)
-    
-    extDiags = {maxww: extDiags_ref}
-    for w in range(ww, maxww):
-        temp = []
-        for i in range(num):
-            delta = maxww-w
-            extODA = extDiags_ref[i][delta:-delta]
-            temp.append(extODA)
-        extDiags[w] = temp
-    
-    x = np.arange(ww, num)
-    predictE = IR.predict(x)
-    predictE[predictE < 0] = 0
-    EDiags = []
-    for i in range(x.size):
-        OneDArray = np.ones(chromLen - x[i]) * predictE[i]
-        EDiags.append(OneDArray)
-    
-    EM = sparse.diags(EDiags, x, format = 'csr')
-
-    extCDiags_ref = []
-    extEDiags_ref = []
-    for i in range(x.size):
-        extODA_C = np.zeros(chromLen - x[i] + maxww*2)
-        extODA_C[maxww:-maxww] = cDiags[i]
-        extCDiags_ref.append(extODA_C)
-        extODA_E = np.zeros(chromLen - x[i] + maxww*2)
-        extODA_E[maxww:-maxww] = EDiags[i]
-        extEDiags_ref.append(extODA_E)
-    
-    extCDiags = {maxww: extCDiags_ref}
-    extEDiags = {maxww: extEDiags_ref}
-    for w in range(ww, maxww):
-        tempC = []
-        tempE = []
-        for i in range(x.size):
-            delta = maxww - w
-            extODA_C = extCDiags_ref[i][delta:-delta]
-            tempC.append(extODA_C)
-            extODA_E = extEDiags_ref[i][delta:-delta]
-            tempE.append(extODA_E)
-        extCDiags[w] = tempC
-        extEDiags[w] = tempE
-    
-    ps = 2 * pw + 1 # Peak Size
-
-                
-    ## Peak Calling ...
-    xi, yi = M.nonzero()
-    Mask = ((yi - xi) >= ww) & ((yi - xi) <= (maxapart // res))
-    xi = xi[Mask]
-    yi = yi[Mask]
-    bSV = np.zeros(xi.size)
-    bEV = np.zeros(xi.size)
-    
-    logger.info('Chrom:{0}, Observed Contact Number: {1}'.format(chrom, xi.size))
-    
-    RefIdx = np.arange(xi.size)
-    RefMask = np.ones(xi.size, dtype = bool)
-    
-    iniNum = totalNum = xi.size
-    
-    logger.info('Chrom:{0}, Calculate the expected matrix ...'.format(chrom))
-    bS = sparse.csr_matrix((chromLen, chromLen))
-    bE = sparse.csr_matrix((chromLen, chromLen))
-    Reads = sparse.csr_matrix((chromLen, chromLen))
-    limitCompute = False
-    for w in range(ww, maxww + 1):
-        ws = 2 * w + 1
-        logger.info('Chrom:{0},    Current window width: {1}'.format(chrom, w))
-        P1 = set([(i,j) for i in range(w-pw, ps+w-pw) for j in range(w-pw, ps+w-pw)])
-        P_1 = set([(i,j) for i in range(w+1, ws) for j in range(w)])
-        P_2 = set([(i,j) for i in range(w+1, ps+w-pw) for j in range(w-pw, w)])
-        P2 = P_1 - P_2
-
-        ss = range(ws)
-        Pool_Diags = {}
-        Pool_EDiags = {}
-        Pool_cDiags = {}
-        for i in ss:
-            for j in ss:
-                bgloc = max(abs(i-w), abs(j-w)) # mark the radial location on background matrix
-                if limitCompute and (bgloc<w):
-                    continue
-                Pool_Diags[(i,j)] = []
-                Pool_EDiags[(i,j)] = []
-                Pool_cDiags[(i,j)] = []
-                for oi in range(num):
-                    if oi + i - j >= 0:
-                        starti = i
-                        endi = i + chromLen - (oi + i - j)
-                    else:
-                        starti = i - (oi + i - j)
-                        endi = starti + chromLen + (oi + i - j)
-                    Pool_Diags[(i,j)].append(extDiags[w][oi][starti:endi])
-                for oi in range(x.size):
-                    if x[oi] + i - j >= 0:
-                        starti = i
-                        endi = i + chromLen - (x[oi] + i - j)
-                    else:
-                        starti = i - (x[oi] + i - j)
-                        endi = starti + chromLen + (x[oi] + i - j)
-                    Pool_EDiags[(i,j)].append(extEDiags[w][oi][starti:endi])
-                    Pool_cDiags[(i,j)].append(extCDiags[w][oi][starti:endi])
-        
-        limitCompute = True
-        
-        for key in Pool_Diags:
-            if (key[0] != w) and (key[1] != w) and (key not in P1):
-                bS = bS + sparse.diags(Pool_cDiags[key], x + (key[0] - key[1]), format = 'csr')
-                bE = bE + sparse.diags(Pool_EDiags[key], x + (key[0] - key[1]), format = 'csr')
-            if key in P2:
-                Reads = Reads + sparse.diags(Pool_Diags[key], np.arange(num) + (key[0] - key[1]), format = 'csr')
-        
-        Txi = xi[RefIdx]
-        Tyi = yi[RefIdx]
-        RNums = np.array(Reads[Txi, Tyi]).ravel()
-        EIdx = RefIdx[RNums >= 16]
-        logger.info('Chrom:{0},    Valid Contact Number: {1}'.format(chrom, EIdx.size))
-        Valid_Ratio = EIdx.size/float(iniNum)
-        logger.info('Chrom:{0},    Valid Contact Ratio: {1:.3f}'.format(chrom, Valid_Ratio))
-        Exi = xi[EIdx]
-        Eyi = yi[EIdx]
-        bSV[EIdx] = np.array(bS[Exi, Eyi]).ravel()
-        bEV[EIdx] = np.array(bE[Exi, Eyi]).ravel()
-        RefIdx = RefIdx[RNums < 16]
-            
-        iniNum = RefIdx.size
-
-        left_Ratio = iniNum/float(totalNum)
-        
-        if Valid_Ratio < 0.3:
-            logger.info('Chrom:{0},    Ratio of valid contact is too small, break the loop ...'.format(chrom))
-            break
-        
-        if left_Ratio < 0.03:
-            logger.info('Chrom:{0},    Very few or no contacts are left, break the loop ...'.format(chrom))
-            break
-        
-        logger.info('Chrom:{0},    Continue ...'.format(chrom))
-        logger.info('Chrom:{0},    {1} Contacts will get into next loop ...'.format(chrom, RefIdx.size))
-    
-    RefMask[RefIdx] = False
-    
-    Mask = np.logical_and((bEV != 0), RefMask)
-    xi = xi[Mask]
-    yi = yi[Mask]
-    bRV = bSV[Mask] / bEV[Mask]
-    
-    bR = sparse.lil_matrix((chromLen, chromLen))
-    bR[xi, yi] = bRV
-    
-    ## Corrected Expected Matrix
-    cEM = EM.multiply(bR.tocsr())
-    
-    logger.info('Chrom:{0}, Construct Poisson Models ...'.format(chrom))
-    ## Poisson Models
-    xi, yi = cEM.nonzero()
-    Evalues = np.array(cEM[xi, yi]).ravel() * biases[xi] * biases[yi]
-    Mask = (Evalues > 0)
-    Evalues = Evalues[Mask]
-    xi = xi[Mask]
-    yi = yi[Mask]
-    Poisses = poisson(Evalues)
-    logger.info('Chrom:{0}, Number of Poisson Models: {1}'.format(chrom, Evalues.size))
-    logger.info('Chrom:{0}, Assign a p-value for each Observed Contact Frequency ...'.format(chrom))
-    Ovalues = np.array(M[xi, yi]).ravel()
-    pvalues = 1 - Poisses.cdf(Ovalues)
-    Fold = Ovalues / Evalues
-    
-    # Multiple Tests
-    logger.info('Chrom:{0}, Benjamini-Hochberg correcting for multiple tests ...'.format(chrom))
-    cResults = multipletests(pvalues, alpha = sig, method = 'fdr_bh')
-    reject = cResults[0]
-    cP = cResults[1] # Corrected Pvalue
-    xpos = xi[reject]
-    ypos = yi[reject]
-    pvalues = pvalues[reject]
-    qvalues = cP[reject]
-    Ovalues = Ovalues[reject]
-    Fold = Fold[reject]
-    
-    # Remove Gap Effect
-    logger.info('Chrom:{0}, Remove Gap Effects ...'.format(chrom))
-    gaps = set(np.where(np.array(M.sum(axis=1)).ravel() == 0)[0])
-    if len(gaps) > 0:
-        fIdx = []
-        for i in np.arange(xpos.size):
-            lower = (xpos[i] - 5) if (xpos[i] > 5) else 0
-            upper = (xpos[i] + 5) if ((xpos[i] + 5) < chromLen) else (chromLen - 1)
-            cregion_1 = range(lower, upper)
-            lower = (ypos[i] - 5) if (ypos[i] > 5) else 0
-            upper = (ypos[i] + 5) if ((ypos[i] + 5) < chromLen) else (chromLen - 1)
-            cregion_2 = range(lower, upper)
-            cregion = set(cregion_1) | set(cregion_2)
-            intersect = cregion & gaps
-            if len(intersect) == 0:
-                fIdx.append(i)
-        
-        xpos = xpos[fIdx]
-        ypos = ypos[fIdx]
-        pvalues = pvalues[fIdx]
-        qvalues = qvalues[fIdx]
-        Ovalues = Ovalues[fIdx]
-        Fold = Fold[fIdx]
-    
-    return xpos, ypos, Ovalues, Fold, pvalues, qvalues
     
 
 if __name__ == '__main__':

@@ -95,20 +95,22 @@ def run():
         nonzero = M[np.nonzero(M)]
         vmax = np.percentile(nonzero, 95)
 
+        chrom = chrom.lstrip('chr')
+
         # Read loop data
         check = open(loop_file, 'rb').readline().rstrip().split()
-        if len(check)==7:
+        if len(check)==10:
             loopType = np.dtype({'names':['chr','loc1','loc2','qvalue'],
                                  'formats':['U5', np.int, np.int, np.float]})
-            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,6])
+            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,9])
             loops = loops[(loops['chr']==chrom)]
             loops = loops[loops['qvalue']<siglevel]
         else:
-            loopType = np.dtype({'names':['chr','loc1','loc2','Q1','Q2','Q3','Q4'],
-                                 'formats':['U5', np.int, np.int, np.float, np.float, np.float, np.float]})
-            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,6,9,12,15])
+            loopType = np.dtype({'names':['chr','loc1','loc2','Q1','Q2'],
+                                 'formats':['U5', np.int, np.int, np.float, np.float]})
+            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,9,12])
             loops = loops[(loops['chr']==chrom)]
-            loops = loops[(loops['Q1']<siglevel) & (loops['Q2']<siglevel) & (loops['Q3']<siglevel) & (loops['Q4']<siglevel)]
+            loops = loops[(loops['Q1']<siglevel) & (loops['Q2']<siglevel)]
     
         # Mask original matrix using loop data
         mask = (loops['loc1']>=start) & (loops['loc2']<end)
@@ -117,7 +119,7 @@ def run():
         if len(loops)>0:
             xi = loops['loc1']//res - start//res
             yi = loops['loc2']//res - start//res
-            Bool[xi, yi] = 1
+            Bool[xi,yi] = 1
     
         M = np.ma.array(M, mask = Bool)
 
@@ -129,7 +131,7 @@ def run():
         fig = plt.figure(figsize=size)
         ax = fig.add_axes([Left, HB, width, HH])
         sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
-                       vmax = vmax, origin = 'lower')
+                       vmax = vmax)
     
         interval = (end - start) // res
         ticks = list(np.linspace(0, interval, 6).astype(int))

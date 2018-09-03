@@ -427,4 +427,3 @@ def balance(cool_uri, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
         h5opts = dict(compression='gzip', compression_opts=6)
         grp['bins'].create_dataset('weight', data=bias, **h5opts)
         grp['bins']['weight'].attrs.update(stats)
-    
