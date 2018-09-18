@@ -38,7 +38,7 @@ def lambdachunk(E):
     return Pool
 
 
-def hiccups(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5], sig=0.1, sumq=0.01, maxww=20,
+def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5], sig=0.1, sumq=0.01, maxww=20,
             maxapart=2000000, res=10000):
 
     # more codes for lower memory
@@ -242,7 +242,7 @@ def hiccups(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
             tmp[vxi[Mask],vyi[Mask]] = bSV[pi][fl][Mask] / bEV[pi][fl][Mask]
             cEM = EM.multiply(tmp.tocsr())
             xi, yi = cEM.nonzero()
-            Evalues = np.array(cEM[xi, yi]).ravel() * biases[xi] * biases[yi]
+            Evalues = np.array(cEM[xi, yi]).ravel() * B1[xi] * B2[yi]
             Mask = Evalues > 0
             Evalues = Evalues[Mask]
             xi = xi[Mask]
@@ -352,7 +352,7 @@ def hiccups(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
 
     return final_table
 
-def bhfdr(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5, sig = 0.05, maxww = 20,
+def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5, sig = 0.05, maxww = 20,
           maxapart = 2000000, res = 10000):
     
     # more codes for lower memory
@@ -519,7 +519,7 @@ def bhfdr(M, cM, biases, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     logger.info('Chrom:{0}, Construct Poisson Models ...'.format(chrom))
     ## Poisson Models
     xi, yi = cEM.nonzero()
-    Evalues = np.array(cEM[xi, yi]).ravel() * biases[xi] * biases[yi]
+    Evalues = np.array(cEM[xi, yi]).ravel() * B1[xi] * B2[yi]
     Mask = (Evalues > 0)
     Evalues = Evalues[Mask]
     xi = xi[Mask]
@@ -640,79 +640,4 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=0.01):
             final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
     
     return final_list
-
-
-def combine_annotations(byres, good_res=10000):
-    """
-    Combine peak annotations at different resolutions.
-
-    Parameters
-    ----------
-    byres : dict
-        Peak annotations at different resolutions. The keys are integer resolutions in base pairs,
-        and the values are also dicts with peak annotations stored by chromosomes.
     
-    good_res : int
-        
-    
-    Return
-    ------
-    peak_list : list
-        Final peak list.
-    """
-    from collections import defaultdict
-    from scipy.spatial import distance_matrix
-
-    t1 = 20000
-    t2 = 50000
-    if len(byres)==1:
-        return byres.values()[0]
-
-    maxres = max(byres)
-
-    ori_filter = defaultdict(int)
-    for r in byres:
-        tmp = byres[r]
-        for c in tmp:
-            for p in tmp[c]:
-                ori_filter[(c,p[0]//maxres,p[1]//maxres)] += 1
-    
-    for r1 in byres:
-        tmp1 = byres[r1]
-        for r2 in byres:
-            if r2==r1:
-                continue
-            tmp2 = byres[r2]
-            for c in tmp1:
-                for p in tmp1[c]:
-                    key = (c, p[0]//maxres, p[1]//maxres)
-                    if ori_filter[key] > 1:
-                        # more evidence, more significant
-                        continue
-                    ref = [(i[0],i[1]) for i in tmp2[c]]
-                    dis = distance_matrix([(p[0],p[1])], ref)
-                    if (r1<20000) and (r2<20000):
-                        if dis <= t1:
-                            ori_filter[key] += 1
-                    else:
-                        if dis <= t2:
-                            ori_filter[key] += 1
-    
-    peak_list = []
-    record = {}
-    for r in sorted(byres):
-        for c in byres[r]:
-            for p in byres[r][c]:
-                key = (c, p[0]//maxres, p[1]//maxres)
-                if ori_filter[key] > 1:
-                    if not key in record:
-                        peak_list.append((c,)+p)
-                        record[key] = 1
-                else:
-                    if r >= good_res:
-                        peak_list.append((c,)+p)
-                        
-            
-    
-
-                

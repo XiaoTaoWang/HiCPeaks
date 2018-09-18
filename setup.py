@@ -10,8 +10,8 @@ or even mix it with other GPL-compatible codes. See the file LICENSE
 included with the distribution for more details.
 
 """
-import os, sys, lib, glob
-from distutils.core import setup
+import os, sys, hicpeaks, glob
+import setuptools
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -26,23 +26,23 @@ for src in glob.glob('scripts/*'):
     text = open(src, 'r').read().replace('\r\n', '\n')
     open(src, 'w').write(text)
 
-setup(
+setuptools.setup(
     name = 'hicpeaks',
-    version = lib.__version__,
-    author = lib.__author__,
+    version = hicpeaks.__version__,
+    author = hicpeaks.__author__,
     author_email = 'wangxiaotao686@gmail.com',
     url = 'https://github.com/XiaoTaoWang/HiCPeaks/',
     description = 'Identify real loops from Hi-C data.',
     keywords = 'Hi-C interaction contact loop peak',
-    package_dir = {'hicpeaks':'lib'},
-    packages = ['hicpeaks'],
-    scripts = glob.glob('scripts/*'),
     long_description = read('README.rst'),
+    long_description_content_type='text/x-rst',
+    scripts = glob.glob('scripts/*'),
+    packages = setuptools.find_packages(),
     classifiers = [
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Operating System :: POSIX',
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         ]

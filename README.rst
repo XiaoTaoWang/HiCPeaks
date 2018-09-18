@@ -31,7 +31,7 @@ Install Conda
 -------------
 .. note:: If you have the Anaconda Distribution installed, you already have it.
 
-Download the latest `Linux Miniconda installer <https://conda.io/miniconda.html>`_,
+Choose an appropriate `Miniconda installer <https://conda.io/miniconda.html>`_ for your system,
 then in your terminal window type the following and follow the prompts on the installer screens::
 
     $ bash Miniconda2-latest-Linux-x86_64.sh

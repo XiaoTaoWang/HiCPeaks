@@ -427,3 +427,93 @@ def balance(cool_uri, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
         h5opts = dict(compression='gzip', compression_opts=6)
         grp['bins'].create_dataset('weight', data=bias, **h5opts)
         grp['bins']['weight'].attrs.update(stats)
+    
+def _parse_peakfile(filpath, skip=1):
+    """
+    Generate a peak annotation table.
+    """
+    D = {}
+    with open(filpath, 'r') as source:
+        for i, line in enumerate(source):
+            if i < skip:
+                continue
+            parse = line.rstrip().split()
+            chrom = parse[0]
+            info = (int(parse[1]),int(parse[2])) + tuple(parse[3:])
+            if chrom in D:
+                D[chrom].append(info)
+            else:
+                D[chrom] = [info]
+    return D 
+
+def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
+    """
+    Combine peak annotations at different resolutions.
+
+    Parameters
+    ----------
+    byres : dict
+        Peak annotations at different resolutions. The keys are integer resolutions in base pairs,
+        and the values are also dicts with peak annotations stored by chromosomes.
+    
+    good_res : int
+        Peaks detected at finer resolutions (less than this value) are likely to be false
+        positives if there are no peak annotations at coarser resolutions in the neighborhood.
+        We keep these peaks only if the two loci are <mindis apart. (Default: 10000)
+    
+    mindis : int
+        See good_res. (Default: 100000)
+    
+    max_res : int
+        Allowed largest resolution for output, i.e., only peaks originally at this or less than
+        this resolution will be outputed. (Default: 10000)
+    
+    Return
+    ------
+    peak_list : list
+        Final peak list.
+    """
+    from scipy.spatial import distance_matrix
+
+    thre1 = 20000
+    thre2 = 50000
+    if len(byres)==1:
+        return list(byres.values())[0]
+    
+    reslist = sorted(byres)
+
+    peak_list = set()
+    record = set()
+    for i in range(len(reslist)-1):
+        tmp1 = byres[reslist[i]]
+        for j in range(i+1,len(reslist)):
+            tmp2 = byres[reslist[j]]
+            for c in tmp1:
+                ref = [(t[0],t[1]) for t in tmp2[c]]
+                for p in tmp1[c]:
+                    key = (c,) + p
+                    if key in record:
+                        continue
+                    dis = distance_matrix([(p[0],p[1])], ref).ravel()
+                    if reslist[i]<20000 and reslist[j]<20000:
+                        mask = dis <= thre1
+                    else:
+                        mask = dis <= thre2
+                    if mask.sum() > 0:
+                        peak_list.add(key)
+                        for idx in np.where(mask)[0]:
+                            record.add((c,)+tmp2[c][idx])
+                    else:
+                        if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[1]-p[0] <= mindis)):
+                            peak_list.add(key)
+    
+    for c in byres[reslist[-1]]:
+        for p in byres[reslist[-1]][c]:
+            key = (c,) + p
+            if (not key in record):
+                if (reslist[-1]<=max_res) and ((reslist[-1]>=good_res) or (p[1]-p[0] <= mindis)):
+                    peak_list.add(key)
+    
+    peak_list = sorted(peak_list)
+    
+    return peak_list

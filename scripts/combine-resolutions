@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+# Created on Wed Sep 5 15:18:31 2018
+
+# Author: XiaoTao Wang
+
+import argparse, sys, hicpeaks
+
+currentVersion = hicpeaks.__version__
+
+def getargs():
+    ## Construct an ArgumentParser object for command-line arguments
+    parser = argparse.ArgumentParser(usage = '%(prog)s <-O output> [options]',
+                                     description = 'Combine peak annotations at different resolutions.',
+                                     formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    
+    # Version
+    parser.add_argument('-v', '--version', action='version',
+                        version=' '.join(['%(prog)s',currentVersion]),
+                        help='Print version number and exit.')
+
+    # Output
+    parser.add_argument('-O', '--output', help = 'Output peak file name.')
+
+    # Input
+    parser.add_argument('-p', '--paths', nargs='+',
+                        help = 'List of peak file paths at different resolutions.')
+    parser.add_argument('-R', '--resolutions', type=int, nargs='+',
+                        help = '''List of resolutions corresponding to the input peak files.''')
+    parser.add_argument('-S', '--skip-rows', type=int, default=1,
+                        help = '''Number of leading lines to skip.''')
+    parser.add_argument('-G', '--good-res', type=int, default=20000,
+                        help='''Peaks detected at finer resolutions (less than this value) are
+                        likely to be false positives if there are no peak annotations at coarser
+                        resolutions in the neighborhood. We keep these peaks only if the two loci
+                        are <mindis apart.''')
+    parser.add_argument('-M', '--min-dis', type=int, default=200000,
+                        help='''See --good-res.''')
+    parser.add_argument('--max-res', type=int, default=10000,
+                        help='''Allowed largest resolution for output, i.e., only peaks originally
+                        at this or less than this resolution will be outputed.''')
+    
+    ## Parse the command-line arguments
+    commands = sys.argv[1:]
+    if not commands:
+        commands.append('-h')
+    args = parser.parse_args(commands)
+    
+    return args, commands
+
+def run():
+
+    # Parse Arguments
+    args, commands = getargs()
+    # Improve the performance if you don't want to run it
+    if commands[0] not in ['-h', '-v', '--help', '--version']:
+
+        from hicpeaks.utilities import combine_annotations, _parse_peakfile
+
+        source_map = dict(zip(args.resolutions, args.paths))
+        byres = {}
+        for res in source_map:
+            byres[res] = _parse_peakfile(source_map[res], args.skip_rows)
+        
+        peak_list = combine_annotations(byres, good_res=args.good_res, mindis=args.min_dis,
+                                        max_res=args.max_res)
+
+        with open(args.output, 'w') as out:
+            for tmp in peak_list:
+                line = (tmp[0],str(tmp[1]),str(tmp[2])) + tmp[3:]
+                out.write('\t'.join(line)+'\n')
+
+if __name__ == '__main__':
+    run()
+
+

@@ -142,7 +142,7 @@ def run():
 
             key = key.lstrip('chr')
 
-            pixel_table = hiccups(M, cM, biases, IR, chromLen, Diags, cDiags, num, key,
+            pixel_table = hiccups(M, cM, biases, biases, IR, chromLen, Diags, cDiags, num, key,
                                   pw=pw, ww=ww, sig=siglevel, sumq=sumq, maxww=maxww, maxapart=maxapart,
                                   res=resolution)
             

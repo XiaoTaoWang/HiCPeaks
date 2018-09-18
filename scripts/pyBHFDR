@@ -136,7 +136,7 @@ def run():
 
             key = key.lstrip('chr')
 
-            pixel_table = bhfdr(M, cM, biases, IR, chromLen, Diags, cDiags, num, key, pw=pw, ww=ww,
+            pixel_table = bhfdr(M, cM, biases, biases, IR, chromLen, Diags, cDiags, num, key, pw=pw, ww=ww,
                                 sig=siglevel, maxww=maxww, maxapart=maxapart, res=resolution)
             
             return key, pixel_table
