@@ -47,6 +47,14 @@ def getargs():
                          help = '''During the additional filtering, original peak pixels would be
                          filtered out if there are no other peak pixels located in its neighborhood
                          and the sum of its 2 q-values is greater than this threshold.''')
+    group_2.add_argument('--double-fold', type = float, default = 1.75,
+                         help = '''Besides FDR control, pyHICCUPS removes all peak pixels that
+                         doesn't show this minimum fold enrichment with respect to the expected
+                         values for both backgrounds.''')
+    group_2.add_argument('--single-fold', type = float, default = 2,
+                         help = '''pyHICCUPS only remains peak pixels which have at least this fold
+                         enrichment over either the donut expected value or the lower-left expected
+                         value.''')
     group_2.add_argument('--maxapart', type = int, default = 5000000, help = 'Maximum genomic'
                          ' distance between two involved loci.')
     group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
@@ -97,6 +105,8 @@ def run():
                    '# Maximum donut width = {}'.format(args.maxww),
                    '# Significant Level = {}'.format(args.siglevel),
                    '# Sum of 2 q-values = {}'.format(args.sumq),
+                   '# Double fold threshold = {}'.format(args.double_fold),
+                   '# Single fold threshold = {}'.format(args.single_fold),
                    '# Maximum Genomic distance = {}'.format(args.maxapart),
                    '# Number of Processes = {}'.format(args.nproc)
                    ]
@@ -112,7 +122,7 @@ def run():
         from hicpeaks.callers import hiccups
 
         def worker(tuple_arg):
-            Lib, key, pw, ww, siglevel, sumq, maxww, maxapart, resolution = tuple_arg
+            Lib, key, pw, ww, maxww, siglevel, sumq, dfold, sfold, maxapart, resolution = tuple_arg
             #logger.info('Chromosome %s ...', key.lstrip('chr'))
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
             cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
@@ -144,7 +154,7 @@ def run():
 
             pixel_table = hiccups(M, cM, biases, biases, IR, chromLen, Diags, cDiags, num, key,
                                   pw=pw, ww=ww, sig=siglevel, sumq=sumq, maxww=maxww, maxapart=maxapart,
-                                  res=resolution)
+                                  double_fold=dfold, single_fold=sfold, res=resolution)
             
             return key, pixel_table
         
@@ -168,7 +178,8 @@ def run():
         for key in Lib.chromnames:
             chromlabel = key.lstrip('chr')
             if ((not args.chroms) or (chromlabel.isdigit() and '#' in args.chroms) or (chromlabel in args.chroms)):
-                Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.sumq, args.maxww, args.maxapart, resolution))
+                Params.append((Lib, key, args.pw, args.ww, args.maxww, args.siglevel, args.sumq, args.double_fold,
+                               args.single_fold, args.maxapart, resolution))
         
         results = map_(worker, Params)
 

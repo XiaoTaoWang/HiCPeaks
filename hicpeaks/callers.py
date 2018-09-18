@@ -38,8 +38,9 @@ def lambdachunk(E):
     return Pool
 
 
-def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5], sig=0.1, sumq=0.01, maxww=20,
-            maxapart=2000000, res=10000):
+def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5],
+            maxww=20, sig=0.1, sumq=0.01, double_fold=1.75, single_fold=2, maxapart=2000000,
+            res=10000):
 
     # more codes for lower memory
     # use reference instead of creating new arrays
@@ -333,7 +334,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
             donut, ll = Donuts[pixel], LL[pixel]
             key = (pixel[0]*res, pixel[1]*res)
             # Additional filtering of peak pixels based on local enrichment thresholds
-            if (donut[1]>1.75) and (ll[1]>1.75) and (donut[1]>2 or ll[1]>2):
+            if (donut[1]>double_fold) and (ll[1]>double_fold) and (donut[1]>single_fold or ll[1]>single_fold):
                 if not key in pixel_table:
                     pixel_table[key] = (cen[0]*res,cen[1]*res) + (radius*res,) + donut + ll[1:]
                 else:
