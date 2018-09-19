@@ -633,12 +633,14 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=0.01):
                 for q in Local:
                     pool.add(q)
                 final_list.append((p[1], cen, rad))
-    else:
+    elif len(pos)==1:
         if not LL is None:
             if Donuts[tuple(pos[0])][-1] + LL[tuple(pos[0])][-1] <= sumq:
                 final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
         else:
             final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
+    else:
+        final_list = []
     
     return final_list
     
