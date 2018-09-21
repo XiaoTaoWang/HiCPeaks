@@ -606,7 +606,8 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=0.01):
                     if Donuts[p[1]][-1] + LL[p[1]][-1] <= sumq:
                         final_list.append((p[1], p[1], 0))
                 else:
-                    final_list.append((p[1], p[1], 0))
+                    if Donuts[p[1]][-1] <= sumq/2:
+                        final_list.append((p[1], p[1], 0))
             else:
                 sub = pos[labels==c]
                 cen = p[1]
@@ -638,7 +639,8 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=0.01):
             if Donuts[tuple(pos[0])][-1] + LL[tuple(pos[0])][-1] <= sumq:
                 final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
         else:
-            final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
+            if Donuts[tuple(pos[0])][-1] <= sumq/2:
+                final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
     else:
         final_list = []
     
