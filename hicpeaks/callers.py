@@ -23,6 +23,9 @@ def pw_ww_pairs(pw, ww, maxww):
     return pool
 
 def lambdachunk(E):
+
+    if E.size==0:
+        return []
     
     numbin = np.int(np.ceil(np.log(E.max()) / np.log(2) * 3 + 1))
     Pool = []
@@ -635,12 +638,13 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=0.01):
                     pool.add(q)
                 final_list.append((p[1], cen, rad))
     elif len(pos)==1:
+        final_list = []
         if not LL is None:
             if Donuts[tuple(pos[0])][-1] + LL[tuple(pos[0])][-1] <= sumq:
-                final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
+                final_list.append((tuple(pos[0]), tuple(pos[0]), 0))
         else:
             if Donuts[tuple(pos[0])][-1] <= sumq/2:
-                final_list = [(tuple(pos[0]), tuple(pos[0]), 0)]
+                final_list.append((tuple(pos[0]), tuple(pos[0]), 0))
     else:
         final_list = []
     
