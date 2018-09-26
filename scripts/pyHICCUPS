@@ -55,6 +55,9 @@ def getargs():
                          help = '''pyHICCUPS only remains peak pixels which have at least this fold
                          enrichment over either the donut expected value or the lower-left expected
                          value.''')
+    group_2.add_argument('--use-raw', action = 'store_true',
+                        help = '''When specified, peak pixels will be sorted by raw observed interaction
+                        frequencies during local clustering. By default, ICE-corrected values will be used.''')
     group_2.add_argument('--maxapart', type = int, default = 5000000, help = 'Maximum genomic'
                          ' distance between two involved loci.')
     group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
@@ -107,6 +110,7 @@ def run():
                    '# Sum of 2 q-values = {}'.format(args.sumq),
                    '# Double fold threshold = {}'.format(args.double_fold),
                    '# Single fold threshold = {}'.format(args.single_fold),
+                   '# Use Raw IF in clustering = {0}'.format(args.use_raw),
                    '# Maximum Genomic distance = {}'.format(args.maxapart),
                    '# Number of Processes = {}'.format(args.nproc)
                    ]
@@ -122,7 +126,7 @@ def run():
         from hicpeaks.callers import hiccups
 
         def worker(tuple_arg):
-            Lib, key, pw, ww, maxww, siglevel, sumq, dfold, sfold, maxapart, resolution = tuple_arg
+            Lib, key, pw, ww, maxww, siglevel, sumq, dfold, sfold, maxapart, resolution, use_raw = tuple_arg
             #logger.info('Chromosome %s ...', key.lstrip('chr'))
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
             cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
@@ -154,7 +158,7 @@ def run():
 
             pixel_table = hiccups(M, cM, biases, biases, IR, chromLen, Diags, cDiags, num, key,
                                   pw=pw, ww=ww, sig=siglevel, sumq=sumq, maxww=maxww, maxapart=maxapart,
-                                  double_fold=dfold, single_fold=sfold, res=resolution)
+                                  double_fold=dfold, single_fold=sfold, res=resolution, use_raw=use_raw)
             
             return key, pixel_table
         
@@ -179,7 +183,7 @@ def run():
             chromlabel = key.lstrip('chr')
             if ((not args.chroms) or (chromlabel.isdigit() and '#' in args.chroms) or (chromlabel in args.chroms)):
                 Params.append((Lib, key, args.pw, args.ww, args.maxww, args.siglevel, args.sumq, args.double_fold,
-                               args.single_fold, args.maxapart, resolution))
+                               args.single_fold, args.maxapart, resolution, args.use_raw))
         
         results = map_(worker, Params)
 
