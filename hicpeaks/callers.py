@@ -43,7 +43,7 @@ def lambdachunk(E):
 
 def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5],
             maxww=20, sig=0.1, sumq=0.01, double_fold=1.75, single_fold=2, maxapart=2000000,
-            res=10000, use_raw=False):
+            res=10000, use_raw=False, min_marginal_peaks=3):
 
     # more codes for lower memory
     # use reference instead of creating new arrays
@@ -231,7 +231,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
         if wi<frozen_w:
             logger.info('Chrom:{0},    ({1},{2}) {3} Contacts will get into next loop ...'.format(chrom, pi, wi, RefIdx[pi].size))
     
-    pixel_table = {} # Store final peak list
+    pixel_table = {} # Store combined peak list
     
     logger.info('Chrom:{0}, Poisson Models and Benjamini-Hochberg Correcting for lambda chunks ...'.format(chrom))
     Description = {'K': 'Donut backgrounds', 'Y': 'Lower-left backgrounds'}
@@ -338,27 +338,25 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
                 LL[(ci,cj)] = preLL[(ci,cj)]
             else:
                 LL[(ci,cj)] = preDonuts[(ci,cj)]
-        peak_list = local_clustering(Donuts, LL, res, r=20000, sumq=sumq) # by default, radius is set to 20Kb
-        for pixel, cen, radius in peak_list:
+
+        for pixel in Donuts:
             donut, ll = Donuts[pixel], LL[pixel]
             key = (pixel[0]*res, pixel[1]*res)
-            # Additional filtering of peak pixels based on local enrichment thresholds
-            if (donut[2]>double_fold) and (ll[2]>double_fold) and (donut[2]>single_fold or ll[2]>single_fold):
-                if not key in pixel_table:
-                    pixel_table[key] = (cen[0]*res,cen[1]*res) + (radius*res,) + donut + ll[2:]
-                else:
-                    if (donut[2]>pixel_table[key][5]) and (ll[2]>pixel_table[key][8]):
-                        pixel_table[key] = (cen[0]*res,cen[1]*res) + (radius*res,) + donut + ll[2:]
+            if not key in pixel_table:
+                pixel_table[key] = key + (0,) + donut + ll[2:]
+            else:
+                if (donut[2]>pixel_table[key][5]) and (ll[2]>pixel_table[key][8]):
+                    pixel_table[key] = key + (0,) + donut + ll[2:]
         
     
     logger.info('Chrom:{0}, Combine peak pixels of different pw-ww pairs ...'.format(chrom))
     Donuts = {(k[0]//res,k[1]//res):pixel_table[k][3:8] for k in pixel_table}
     LL = {(k[0]//res,k[1]//res):pixel_table[k][8:] for k in pixel_table}
-    peak_list = local_clustering(Donuts, LL, res, r=20000, sumq=sumq)
+    peak_list = local_clustering(Donuts, LL, res, min_count=min_marginal_peaks, r=20000, sumq=sumq)
     final_table = {}
     for pixel, cen, radius in peak_list:
         key = (pixel[0]*res, pixel[1]*res)
-        final_table[key] = pixel_table[key][:3] + pixel_table[key][4:]
+        final_table[key] = (cen[0]*res, cen[1]*res) + (radius*res,) + pixel_table[key][4:]
 
     return final_table
 
@@ -590,7 +588,7 @@ def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     return pixel_table
 
 
-def find_anchors(pos, min_count=2, min_dis=20000, wlen=500000, res=10000):
+def find_anchors(pos, min_count=3, min_dis=20000, wlen=500000, res=10000):
 
     from collections import Counter
     from scipy.signal import find_peaks, peak_widths
@@ -620,7 +618,7 @@ def find_anchors(pos, min_count=2, min_dis=20000, wlen=500000, res=10000):
     
     return peaks
 
-def _cluster_core(sort_list, r, sumq, visited, final_list):
+def _cluster_core(sort_list, r, visited, final_list):
 
     from sklearn.cluster import dbscan
     from scipy.spatial.distance import euclidean
@@ -664,7 +662,7 @@ def _cluster_core(sort_list, r, sumq, visited, final_list):
         
         visited.update(pool)
 
-def local_clustering(Donuts, LL, res, r=20000, sumq=1):
+def local_clustering(Donuts, LL, res, min_count=3, r=20000, sumq=1):
 
     final_list = []
     x = np.r_[[i[0] for i in Donuts]]
@@ -672,8 +670,8 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=1):
     if x.size == 0:
         return final_list
 
-    x_anchors = find_anchors(x, min_count=5, min_dis=r, res=res)
-    y_anchors = find_anchors(y, min_count=5, min_dis=r, res=res)
+    x_anchors = find_anchors(x, min_count=3, min_dis=r, res=res)
+    y_anchors = find_anchors(y, min_count=3, min_dis=r, res=res)
     r = max(r//res, 1)
     visited = set()
     for x_a in x_anchors:
@@ -683,7 +681,7 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=1):
                 if (i>=x_a[1]) and (i<=x_a[2]) and (j>=y_a[1]) and (j<=y_a[2]):
                     sort_list.append((Donuts[(i,j)][0], (i,j)))
             sort_list.sort(reverse=True)
-            _cluster_core(sort_list, r, sumq, visited, final_list)
+            _cluster_core(sort_list, r, visited, final_list)
     
     sort_list = [] # out of anchor
     for i, j in zip(x, y):
@@ -691,16 +689,18 @@ def local_clustering(Donuts, LL, res, r=20000, sumq=1):
             continue
         sort_list.append((Donuts[(i,j)][0], (i,j)))
     sort_list.sort(reverse=True)
-    _cluster_core(sort_list, r, sumq, visited, final_list)
+    _cluster_core(sort_list, r, visited, final_list)
 
+    x_summits = set([i[0] for i in x_anchors])
+    y_summits = set([i[0] for i in y_anchors])
     for i, j in zip(x, y):
         if (i,j) in visited:
             continue
         if not LL is None:
-            if Donuts[(i,j)][-1] + LL[(i,j)][-1] <= sumq:
-                final_list.append(((i,j), (i,j), 0))
+            qpass = (Donuts[(i,j)][-1] + LL[(i,j)][-1] <= sumq)
         else:
-            if Donuts[(i,j)][-1] <= sumq/2:
-                final_list.append(((i,j), (i,j), 0))
+            qpass = (Donuts[(i,j)][-1] <= sumq/2)
+        if qpass and ((i in x_summits) or (j in y_summits)):
+            final_list.append(((i,j), (i,j), 0))
     
     return final_list
