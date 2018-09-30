@@ -26,7 +26,7 @@ def getargs():
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
     group_1.add_argument('-p', '--path',
-                         help = 'URI string pointing to a cooler under specific resolution.')
+                         help = 'Cooler URI.')
     group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
                         help = 'List of chromosome labels. Only Hi-C data within the specified '
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
@@ -36,11 +36,9 @@ def getargs():
     ## About the algorithm
     group_2 = parser.add_argument_group(title = 'Algorithm Parameters:')
     group_2.add_argument('--pw', type=int, nargs='+',
-                         help='''List of the peak width settings. Recommendation: 1 at 20 kb,
-                         2 at 10 kb, and 4 at 5 kb''')
+                         help='''List of the peak widths.''')
     group_2.add_argument('--ww', type=int, nargs='+',
-                         help='''List of the donut width settings. Recommendation: 3 at 20 kb,
-                         5 at 10 kb, and 7 at 5 kb''')
+                         help='''List of the donut widths.''')
     group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.1, help = 'Significant Level.')
     group_2.add_argument('--sumq', type = float, default = 0.01,

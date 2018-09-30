@@ -291,11 +291,11 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
             if len(gaps) > 0:
                 fIdx = []
                 for i in np.arange(xi.size):
-                    lower = (xi[i] - 5) if (xi[i] > 5) else 0
-                    upper = (xi[i] + 5) if ((xi[i] + 5) < chromLen) else (chromLen - 1)
+                    lower = (xi[i] - min(ww)) if (xi[i] > min(ww)) else 0
+                    upper = (xi[i] + min(ww)) if ((xi[i] + min(ww)) < chromLen) else (chromLen - 1)
                     cregion_1 = range(lower, upper)
-                    lower = (yi[i] - 5) if (yi[i] > 5) else 0
-                    upper = (yi[i] + 5) if ((yi[i] + 5) < chromLen) else (chromLen - 1)
+                    lower = (yi[i] - min(ww)) if (yi[i] > min(ww)) else 0
+                    upper = (yi[i] + min(ww)) if ((yi[i] + min(ww)) < chromLen) else (chromLen - 1)
                     cregion_2 = range(lower, upper)
                     cregion = set(cregion_1) | set(cregion_2)
                     intersect = cregion & gaps
@@ -330,7 +330,6 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
             if cEM[ci,cj]==0: # corresponds to lower-left
                 commonPos.add((ci,cj))
         
-        logger.info('Chrom:{0},    Peak width:{1}, Donut width:{2}, Perform greedy clustering and additional filtering ...'.format(chrom, pi, wi))
         Donuts = {}; LL = {}
         for ci, cj in commonPos:
             Donuts[(ci,cj)] = preDonuts[(ci,cj)]
@@ -342,14 +341,15 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
         for pixel in Donuts:
             donut, ll = Donuts[pixel], LL[pixel]
             key = (pixel[0]*res, pixel[1]*res)
-            if not key in pixel_table:
-                pixel_table[key] = key + (0,) + donut + ll[2:]
-            else:
-                if (donut[2]>pixel_table[key][5]) and (ll[2]>pixel_table[key][8]):
+            if (donut[2]>double_fold) and (ll[2]>double_fold) and ((donut[2]>single_fold) or (ll[2]>single_fold)):
+                if not key in pixel_table:
                     pixel_table[key] = key + (0,) + donut + ll[2:]
-        
+                else:
+                    if (donut[-1]<pixel_table[key][7]) and (ll[-1]<pixel_table[key][10]):
+                        pixel_table[key] = key + (0,) + donut + ll[2:]
     
     logger.info('Chrom:{0}, Combine peak pixels of different pw-ww pairs ...'.format(chrom))
+    logger.info('Chrom:{0}, Perform greedy clustering and additional filtering ...'.format(chrom))
     Donuts = {(k[0]//res,k[1]//res):pixel_table[k][3:8] for k in pixel_table}
     LL = {(k[0]//res,k[1]//res):pixel_table[k][8:] for k in pixel_table}
     peak_list = local_clustering(Donuts, LL, res, min_count=min_marginal_peaks, r=20000, sumq=sumq)
@@ -557,11 +557,11 @@ def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     if len(gaps) > 0:
         fIdx = []
         for i in np.arange(xpos.size):
-            lower = (xpos[i] - 5) if (xpos[i] > 5) else 0
-            upper = (xpos[i] + 5) if ((xpos[i] + 5) < chromLen) else (chromLen - 1)
+            lower = (xpos[i] - ww) if (xpos[i] > ww) else 0
+            upper = (xpos[i] + ww) if ((xpos[i] + ww) < chromLen) else (chromLen - 1)
             cregion_1 = range(lower, upper)
-            lower = (ypos[i] - 5) if (ypos[i] > 5) else 0
-            upper = (ypos[i] + 5) if ((ypos[i] + 5) < chromLen) else (chromLen - 1)
+            lower = (ypos[i] - ww) if (ypos[i] > ww) else 0
+            upper = (ypos[i] + ww) if ((ypos[i] + ww) < chromLen) else (chromLen - 1)
             cregion_2 = range(lower, upper)
             cregion = set(cregion_1) | set(cregion_2)
             intersect = cregion & gaps
@@ -588,33 +588,46 @@ def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     return pixel_table
 
 
-def find_anchors(pos, min_count=3, min_dis=20000, wlen=500000, res=10000):
+def find_anchors(pos, min_count=3, min_dis=20000, wlen=800000, res=10000):
 
     from collections import Counter
     from scipy.signal import find_peaks, peak_widths
 
     min_dis = max(min_dis//res, 1)
-    wlen = wlen//res
+    wlen = min(wlen//res, 20)
 
     count = Counter(pos)
     refidx = range(min(count), max(count)+1)
     signal = np.r_[[count[i] for i in refidx]]
     summits = find_peaks(signal, height=min_count, distance=min_dis)[0]
+    sorted_summits = [(signal[i],i) for i in summits]
+    sorted_summits.sort(reverse=True) # sort by peak count
     
-    peaks = []
-    for i in sorted(summits):
+    peaks = set()
+    records = {}
+    for _, i in sorted_summits:
         tmp = peak_widths(signal, [i], rel_height=1, wlen=wlen)[2:4]
         li, ri = int(np.round(tmp[0][0])), int(np.round(tmp[1][0]))
         lb = refidx[li]
         rb = refidx[ri]
         if not len(peaks):
-            peaks.append([refidx[i], lb, rb])
+            peaks.add((refidx[i], lb, rb))
+            for b in range(lb, rb+1):
+                records[b] = (refidx[i], lb, rb)
         else:
-            if lb < peaks[-1][2]:
-                # in this case, current peak must have higher height
-                peaks.append([refidx[i], peaks[-1][2], rb])
-            else:
-                peaks.append([refidx[i], lb, rb])
+            for b in range(lb, rb+1):
+                if b in records:
+                    # merge anchors
+                    m_lb = min(lb, records[b][1])
+                    m_rb = max(rb, records[b][2])
+                    summit = records[b][0] # always the highest summit
+                    peaks.remove(records[b])
+                    break
+            else: # loop terminates normally
+                m_lb, m_rb, summit = lb, rb, refidx[i]
+            peaks.add((summit, m_lb, m_rb))
+            for b in range(m_lb, m_rb+1):
+                records[b] = (summit, m_lb, m_rb)
     
     return peaks
 
@@ -670,8 +683,8 @@ def local_clustering(Donuts, LL, res, min_count=3, r=20000, sumq=1):
     if x.size == 0:
         return final_list
 
-    x_anchors = find_anchors(x, min_count=3, min_dis=r, res=res)
-    y_anchors = find_anchors(y, min_count=3, min_dis=r, res=res)
+    x_anchors = find_anchors(x, min_count=min_count, min_dis=r, res=res)
+    y_anchors = find_anchors(y, min_count=min_count, min_dis=r, res=res)
     r = max(r//res, 1)
     visited = set()
     for x_a in x_anchors:
@@ -700,7 +713,8 @@ def local_clustering(Donuts, LL, res, min_count=3, r=20000, sumq=1):
             qpass = (Donuts[(i,j)][-1] + LL[(i,j)][-1] <= sumq)
         else:
             qpass = (Donuts[(i,j)][-1] <= sumq/2)
-        if qpass and ((i in x_summits) or (j in y_summits)):
+            
+        if qpass and ((i in x_summits) or (j in y_summits)): # may contribute to the stripe pattern
             final_list.append(((i,j), (i,j), 0))
     
     return final_list
