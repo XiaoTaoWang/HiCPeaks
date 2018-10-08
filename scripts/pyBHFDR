@@ -145,12 +145,6 @@ def run():
         Lib = cooler.Cooler(args.path)
         resolution = Lib.binsize
 
-        if args.nproc == 1:
-            map_ = map
-        else:
-            pool = Pool(args.nproc)
-            map_ = pool.map
-        
         logger.info('Calling Peaks ...')
         OF = open(args.output, 'w')
         head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'centroid_x', 'centroid_y','radius','IF', 'Enrichment',
@@ -162,9 +156,15 @@ def run():
             chromlabel = key.lstrip('chr')
             if ((not args.chroms) or (chromlabel.isdigit() and '#' in args.chroms) or (chromlabel in args.chroms)):
                 Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.maxww, args.maxapart, resolution))
-        
-        results = map_(worker, Params)
 
+        if args.nproc == 1:
+            results = map(worker, Params)
+        else:
+            pool = Pool(args.nproc)
+            results = pool.map(worker, Params)
+            pool.close()
+            pool.join()
+        
         for key, pixel_table in results:
             for pixel in pixel_table:
                 lineFormat = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6:.3g}\t{7:.3g}\t{8:.3g}\t{9:.3g}\n'
