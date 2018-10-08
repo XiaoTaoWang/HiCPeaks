@@ -43,7 +43,7 @@ def lambdachunk(E):
 
 def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5],
             maxww=20, sig=0.1, sumq=0.01, double_fold=1.75, single_fold=2, maxapart=2000000,
-            res=10000, use_raw=False, min_marginal_peaks=3):
+            res=10000, use_raw=False, min_marginal_peaks=3, onlyanchor=True):
 
     # more codes for lower memory
     # use reference instead of creating new arrays
@@ -352,7 +352,8 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
     logger.info('Chrom:{0}, Perform greedy clustering and additional filtering ...'.format(chrom))
     Donuts = {(k[0]//res,k[1]//res):pixel_table[k][3:8] for k in pixel_table}
     LL = {(k[0]//res,k[1]//res):pixel_table[k][8:] for k in pixel_table}
-    peak_list = local_clustering(Donuts, LL, res, min_count=min_marginal_peaks, r=20000, sumq=sumq)
+    peak_list = local_clustering(Donuts, LL, res, min_count=min_marginal_peaks, r=20000, sumq=sumq,
+                                 onlysummit=onlyanchor)
     final_table = {}
     for pixel, cen, radius in peak_list:
         key = (pixel[0]*res, pixel[1]*res)
@@ -361,7 +362,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
     return final_table
 
 def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5, sig = 0.05, maxww = 20,
-          maxapart = 2000000, res = 10000, min_marginal_peaks = 3):
+          maxapart = 2000000, res = 10000, min_marginal_peaks = 3, onlyanchor = False):
     
     # more codes for lower memory
     # use reference instead of creating new arrays
@@ -577,7 +578,8 @@ def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     
     logger.info('Chrom:{0}, Perform greedy clustering and additional filtering ...'.format(chrom))
     Donuts = dict(zip(zip(xpos, ypos), zip(Ovalues, Fold, pvalues, qvalues)))
-    pixel_list = local_clustering(Donuts, None, res, min_count=min_marginal_peaks, r=20000) # by default, radius is set to 20Kb
+    pixel_list = local_clustering(Donuts, None, res, min_count=min_marginal_peaks, r=20000,
+                                  onlysummit=onlyanchor) # by default, radius is set to 20Kb
     pixel_table = {}
     for pixel, cen, radius in pixel_list:
         donut = Donuts[pixel]
@@ -675,7 +677,7 @@ def _cluster_core(sort_list, r, visited, final_list):
         
         visited.update(pool)
 
-def local_clustering(Donuts, LL, res, min_count=3, r=20000, sumq=1):
+def local_clustering(Donuts, LL, res, onlysummit=False, min_count=3, r=20000, sumq=1):
 
     final_list = []
     x = np.r_[[i[0] for i in Donuts]]
@@ -713,8 +715,12 @@ def local_clustering(Donuts, LL, res, min_count=3, r=20000, sumq=1):
             qpass = (Donuts[(i,j)][-1] + LL[(i,j)][-1] <= sumq)
         else:
             qpass = (Donuts[(i,j)][-1] <= sumq/2)
-            
-        if qpass and ((i in x_summits) or (j in y_summits)): # may contribute to the stripe pattern
-            final_list.append(((i,j), (i,j), 0))
+        
+        if onlysummit:
+            if qpass and ((i in x_summits) or (j in y_summits)):
+                final_list.append(((i,j), (i,j), 0))
+        else:
+            if qpass:
+                final_list.append(((i,j), (i,j), 0))
     
     return final_list
