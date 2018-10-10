@@ -58,7 +58,7 @@ def getargs():
                         frequencies during local clustering. By default, ICE-corrected values will be used.''')
     group_2.add_argument('--min-marginal-peaks', type = int, default = 3,
                         help = '''Minimum marginal number of peaks when detecting peak anchors.''')
-    group_2.add_argument('--only-anchor', action = 'store_true',
+    group_2.add_argument('--only-anchors', action = 'store_true',
                          help = '''When specified, either of the peak loci must be an anchor.''')
     group_2.add_argument('--maxapart', type = int, default = 10000000, help = 'Maximum genomic'
                          ' distance between two involved loci.')
