@@ -66,13 +66,13 @@ def run():
         from hicpeaks.utilities import _parse_peakfile, find_chrom_pre
 
         ## extract Hi-C matrix
-        hic_pool = cooler.Cooler(args.hic)
+        hic_pool = cooler.Cooler(args.path)
         res = hic_pool.binsize
         correct = args.useICE
 
         # consistent chromosome label
         pre = find_chrom_pre(hic_pool.chromnames)
-        
+
         peaks = _parse_peakfile(args.loop_file, args.skip_rows)
         apa = []
         for c in peaks:
@@ -80,12 +80,28 @@ def run():
             M = hic_pool.matrix(balance=correct, sparse=True).fetch(chrom)
             M = M.tocsr()
 
+            # locate exact pos at given resolution
             pos = []
             for p in peaks[c]:
-                x, y = p[0]//res, p[1]//res
-                if x > y:
-                    x, y = y, x
-                pos.append((x, y))
+                orires = p[-1]
+                x, y = p[0], p[1]
+                s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
+                e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
+                si, ei = None, None
+                for st in s_l:
+                    for et in e_l:
+                        if (st < M.shape[0]) and (et < M.shape[0]):
+                            if si is None:
+                                si, ei = st, et
+                            else:
+                                if M[st,et] > M[si,ei]:
+                                    si, ei = st, et
+                
+                if not si is None:
+                    if si < ei:
+                        pos.append((si, ei))
+                    else:
+                        pos.append((ei, si))
                         
             tmp = apa_submatrix(M, pos, w=args.window, t=args.min_dis)
             apa.extend(tmp)

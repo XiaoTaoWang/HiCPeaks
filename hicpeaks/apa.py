@@ -18,6 +18,9 @@ def apa_submatrix(M, pos, w=5, t=15):
             tmp = M[i-w:i+w+1, j-w:j+w+1].toarray()
             if tmp.mean()==0:
                 continue
+            mask = np.isnan(tmp)
+            if mask.sum() > 0:
+                continue
             tmp = tmp / tmp.mean()
             apa.append(tmp)
     
