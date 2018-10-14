@@ -67,7 +67,7 @@ def run():
 
         with open(args.output, 'w') as out:
             for tmp in peak_list:
-                line = (tmp[0],str(tmp[1]),str(tmp[2])) + tmp[3:]
+                line = (tmp[0], str(tmp[1]), str(tmp[2]), str(tmp[3]))
                 out.write('\t'.join(line)+'\n')
 
 if __name__ == '__main__':

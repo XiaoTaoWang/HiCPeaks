@@ -97,10 +97,14 @@ def run():
         M[np.isnan(M)] = 0
     
         nonzero = M[np.nonzero(M)]
-        if vmin is None:
+        if args.vmin is None:
             vmin = 0
-        if vmax is None:
+        else:
+            vmin = args.vmin
+        if args.vmax is None:
             vmax = np.percentile(nonzero, 95)
+        else:
+            vmax = args.vmax
 
         chrom = chrom.lstrip('chr')
 

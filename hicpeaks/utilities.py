@@ -478,7 +478,12 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
     thre1 = 20000
     thre2 = 50000
     if len(byres)==1:
-        return list(byres.values())[0]
+        peak_list = []
+        for r in byres:
+            for c in byres[r]:
+                for p in byres[r][c]:
+                    peak_list.append((c,)+p[:2]+(r,))
+        return peak_list
     
     reslist = sorted(byres)
 
@@ -489,10 +494,17 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
         for j in range(i+1,len(reslist)):
             tmp2 = byres[reslist[j]]
             for c in tmp1:
-                ref = [(t[0],t[1]) for t in tmp2[c]]
+                if c in tmp2:
+                    ref = [(t[0],t[1]) for t in tmp2[c]]
+                else:
+                    ref = []
                 for p in tmp1[c]:
-                    key = (c,) + p
+                    key = (c,) + p[:2] + (reslist[i],)
                     if key in record:
+                        continue
+                    if not len(ref):
+                        if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[1]-p[0] <= mindis)):
+                            peak_list.add(key)
                         continue
                     dis = distance_matrix([(p[0],p[1])], ref).ravel()
                     if reslist[i]<20000 and reslist[j]<20000:
@@ -509,7 +521,7 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
     
     for c in byres[reslist[-1]]:
         for p in byres[reslist[-1]][c]:
-            key = (c,) + p
+            key = (c,) + p[:2] + (reslist[-1],)
             if (not key in record):
                 if (reslist[-1]<=max_res) and ((reslist[-1]>=good_res) or (p[1]-p[0] <= mindis)):
                     peak_list.add(key)
