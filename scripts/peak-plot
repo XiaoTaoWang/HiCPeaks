@@ -33,6 +33,10 @@ def getargs():
     parser.add_argument('--correct', action='store_true',
                         help='''Whether or not plot ICE-corrected heatmap.''')
     parser.add_argument('--siglevel', type=float, default=0.05, help='Significant level.')
+    parser.add_argument('--vmin', type=float,
+                        help='''The minimum value that the colorbar covers.''')
+    parser.add_argument('--vmax', type=float,
+                        help='''The maximum value that the colorbar covers.''')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -93,7 +97,10 @@ def run():
         M[np.isnan(M)] = 0
     
         nonzero = M[np.nonzero(M)]
-        vmax = np.percentile(nonzero, 95)
+        if vmin is None:
+            vmin = 0
+        if vmax is None:
+            vmax = np.percentile(nonzero, 95)
 
         chrom = chrom.lstrip('chr')
 
@@ -131,7 +138,7 @@ def run():
         fig = plt.figure(figsize=size)
         ax = fig.add_axes([Left, HB, width, HH])
         sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
-                       vmax = vmax)
+                       vmax = vmax, vmin = vmin)
     
         interval = (end - start) // res
         ticks = list(np.linspace(0, interval, 6).astype(int))
