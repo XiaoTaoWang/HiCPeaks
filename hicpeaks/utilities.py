@@ -427,6 +427,15 @@ def balance(cool_uri, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
         h5opts = dict(compression='gzip', compression_opts=6)
         grp['bins'].create_dataset('weight', data=bias, **h5opts)
         grp['bins']['weight'].attrs.update(stats)
+
+def find_chrom_pre(chromlabels):
+
+    ini = chromlabels[0]
+    if ini.startswith('chr'):
+        return 'chr'
+    
+    else:
+        return ''
     
 def _parse_peakfile(filpath, skip=1):
     """
@@ -444,7 +453,19 @@ def _parse_peakfile(filpath, skip=1):
                 D[chrom].append(info)
             else:
                 D[chrom] = [info]
-    return D 
+    
+    # consistent chrom labels
+    keys = list(D.keys())
+    pre = find_chrom_pre(keys)
+    if not pre:
+        new = {}
+        for chrom in D:
+            k = chrom.lstrip(pre)
+            new[k] = D[chrom]
+    else:
+        new = D
+
+    return new
 
 def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
     """
@@ -500,7 +521,7 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
                     ref = []
                 for p in tmp1[c]:
                     key = (c,) + p[:2] + (reslist[i],)
-                    if key in record:
+                    if key[:3] in record:
                         continue
                     if not len(ref):
                         if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[1]-p[0] <= mindis)):
@@ -514,7 +535,7 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
                     if mask.sum() > 0:
                         peak_list.add(key)
                         for idx in np.where(mask)[0]:
-                            record.add((c,)+tmp2[c][idx])
+                            record.add((c,)+tmp2[c][idx][:2])
                     else:
                         if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[1]-p[0] <= mindis)):
                             peak_list.add(key)
@@ -522,7 +543,7 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
     for c in byres[reslist[-1]]:
         for p in byres[reslist[-1]][c]:
             key = (c,) + p[:2] + (reslist[-1],)
-            if (not key in record):
+            if (not key[:3] in record):
                 if (reslist[-1]<=max_res) and ((reslist[-1]>=good_res) or (p[1]-p[0] <= mindis)):
                     peak_list.add(key)
     
