@@ -30,9 +30,10 @@ def getargs():
     parser.add_argument('-C', '--chrom', help='Chromosome label of your anticipated region.')
     parser.add_argument('-S', '--start', type=int, help='Start site (bp) of the region.')
     parser.add_argument('-E', '--end', type=int, help='End site (bp) of the region.')
+    parser.add_argument('--skip-rows', default=0, type=int,
+                        help='''Number of leading lines in the loop file to skip.''')
     parser.add_argument('--correct', action='store_true',
                         help='''Whether or not plot ICE-corrected heatmap.''')
-    parser.add_argument('--siglevel', type=float, default=0.05, help='Significant level.')
     parser.add_argument('--vmin', type=float,
                         help='''The minimum value that the colorbar covers.''')
     parser.add_argument('--vmax', type=float,
@@ -84,7 +85,7 @@ def run():
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
         cmap.set_bad('#2672a1')
 
-        chrom, start, end, loop_file, siglevel = args.chrom, args.start, args.end, args.loop_file, args.siglevel
+        chrom, start, end, loop_file = args.chrom, args.start, args.end, args.loop_file
 
         # Load Cooler
         Lib = cooler.Cooler(args.path)
@@ -109,28 +110,37 @@ def run():
         chrom = chrom.lstrip('chr')
 
         # Read loop data
-        check = open(loop_file, 'rb').readline().rstrip().split()
-        if len(check)==10:
-            loopType = np.dtype({'names':['chr','loc1','loc2','qvalue'],
-                                 'formats':['U5', np.int, np.int, np.float]})
-            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,9])
-            loops = loops[(loops['chr']==chrom)]
-            loops = loops[loops['qvalue']<siglevel]
-        else:
-            loopType = np.dtype({'names':['chr','loc1','loc2','Q1','Q2'],
-                                 'formats':['U5', np.int, np.int, np.float, np.float]})
-            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=1, usecols=[0,1,2,9,12])
-            loops = loops[(loops['chr']==chrom)]
-            loops = loops[(loops['Q1']<siglevel) & (loops['Q2']<siglevel)]
+        loopType = np.dtype({'names':['chr','loc1','loc2','res'],
+                             'formats':['U5', np.int, np.int, np.int]})
+        loops = np.loadtxt(loop_file, dtype=loopType, skiprows=args.skip_rows, usecols=[0,1,2,3])
+        loops = loops[(loops['chr']==chrom)]
     
         # Mask original matrix using loop data
-        mask = (loops['loc1']>=start) & (loops['loc2']<end)
+        test_x = loops['loc1']
+        test_y = loops['loc2'] + loops['res']
+        mask = (test_x >= start) & (test_y < end)
         loops = loops[mask]
         Bool = np.zeros(M.shape, dtype=bool)
-        if len(loops)>0:
-            xi = loops['loc1']//res - start//res
-            yi = loops['loc2']//res - start//res
-            Bool[xi,yi] = 1
+        for x, y, orires in zip(loops['loc1'], loops['loc2'], loops['res']):
+            # Lodate the peak pixel at given resolution
+            s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
+            e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
+            si, ei = None, None
+            for i in s_l:
+                for j in e_l:
+                    st = i - start//res
+                    et = j - start//res
+                    if (st < M.shape[0]) and (et < M.shape[0]):
+                        if si is None:
+                            si, ei = st, et
+                        else:
+                            if M[st,et] > M[si,ei]:
+                                si, ei = st, et
+            if not si is None:
+                if si < ei:
+                    Bool[si, ei] = 1
+                else:
+                    Bool[ei, si] = 1
     
         M = np.ma.array(M, mask = Bool)
 

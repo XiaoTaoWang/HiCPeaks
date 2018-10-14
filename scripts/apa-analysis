@@ -83,7 +83,7 @@ def run():
             # locate exact pos at given resolution
             pos = []
             for p in peaks[c]:
-                orires = p[-1]
+                orires = int(p[-1])
                 x, y = p[0], p[1]
                 s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
                 e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
