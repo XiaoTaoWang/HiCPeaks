@@ -377,7 +377,7 @@ def balance(cool_uri, nproc=1, chunksize=int(1e7), mad_max=5, min_nnz=10,
     """
     cool_path, group_path = parse_cooler_uri(cool_uri)
     # pre-check the weight column
-    with h5py.File(cool_path, 'r') as h5:
+    with h5py.File(cool_path, 'r+') as h5:
         grp = h5[group_path]
         if 'weight' in grp['bins']:
             del grp['bins']['weight'] # Overwrite the weight column

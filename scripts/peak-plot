@@ -38,6 +38,8 @@ def getargs():
                         help='''The minimum value that the colorbar covers.''')
     parser.add_argument('--vmax', type=float,
                         help='''The maximum value that the colorbar covers.''')
+    parser.add_argument('--nolabel', action='store_true',
+                        help='''Whether or not add genomic coordinates.''')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -85,10 +87,9 @@ def run():
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
         cmap.set_bad('#2672a1')
 
-        chrom, start, end, loop_file = args.chrom, args.start, args.end, args.loop_file
-
         # Load Cooler
         Lib = cooler.Cooler(args.path)
+        chrom, start, end = args.chrom, args.start, args.end
 
         # Extract matrix
         res = Lib.binsize
@@ -108,39 +109,41 @@ def run():
             vmax = args.vmax
 
         chrom = chrom.lstrip('chr')
-
-        # Read loop data
-        loopType = np.dtype({'names':['chr','loc1','loc2','res'],
-                             'formats':['U5', np.int, np.int, np.int]})
-        loops = np.loadtxt(loop_file, dtype=loopType, skiprows=args.skip_rows, usecols=[0,1,2,3])
-        loops = loops[(loops['chr']==chrom)]
-    
-        # Mask original matrix using loop data
-        test_x = loops['loc1']
-        test_y = loops['loc2'] + loops['res']
-        mask = (test_x >= start) & (test_y < end)
-        loops = loops[mask]
         Bool = np.zeros(M.shape, dtype=bool)
-        for x, y, orires in zip(loops['loc1'], loops['loc2'], loops['res']):
-            # Lodate the peak pixel at given resolution
-            s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
-            e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
-            si, ei = None, None
-            for i in s_l:
-                for j in e_l:
-                    st = i - start//res
-                    et = j - start//res
-                    if (st < M.shape[0]) and (et < M.shape[0]):
-                        if si is None:
-                            si, ei = st, et
-                        else:
-                            if M[st,et] > M[si,ei]:
+        if not args.loop_file is None:
+            loop_file = args.loop_file
+            # Read loop data
+            loopType = np.dtype({'names':['chr','loc1','loc2','res'],
+                                 'formats':['U5', np.int, np.int, np.int]})
+            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=args.skip_rows, usecols=[0,1,2,3])
+            loops = loops[(loops['chr']==chrom)]
+    
+            # Mask original matrix using loop data
+            test_x = loops['loc1']
+            test_y = loops['loc2'] + loops['res']
+            mask = (test_x >= start) & (test_y < end)
+            loops = loops[mask]
+        
+            for x, y, orires in zip(loops['loc1'], loops['loc2'], loops['res']):
+                # Lodate the peak pixel at given resolution
+                s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
+                e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
+                si, ei = None, None
+                for i in s_l:
+                    for j in e_l:
+                        st = i - start//res
+                        et = j - start//res
+                        if (st < M.shape[0]) and (et < M.shape[0]):
+                            if si is None:
                                 si, ei = st, et
-            if not si is None:
-                if si < ei:
-                    Bool[si, ei] = 1
-                else:
-                    Bool[ei, si] = 1
+                            else:
+                                if M[st,et] > M[si,ei]:
+                                    si, ei = st, et
+                if not si is None:
+                    if si < ei:
+                        Bool[si, ei] = 1
+                    else:
+                        Bool[ei, si] = 1
     
         M = np.ma.array(M, mask = Bool)
 
@@ -153,19 +156,22 @@ def run():
         ax = fig.add_axes([Left, HB, width, HH])
         sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
                        vmax = vmax, vmin = vmin)
-    
-        interval = (end - start) // res
-        ticks = list(np.linspace(0, interval, 6).astype(int))
-        pos = list(np.linspace(start, end, 6).astype(int))
-        labels = [properU(p) for p in pos]
-        ax.set_xticks(ticks)
-        ax.set_xticklabels(labels)
-        ax.set_yticks(ticks)
-        ax.set_yticklabels(labels)
-        caxis_H(ax)
+        if args.nolabel:
+            ax.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
+                           labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        else:
+            interval = (end - start) // res
+            ticks = list(np.linspace(0, interval, 6).astype(int))
+            pos = list(np.linspace(start, end, 6).astype(int))
+            labels = [properU(p) for p in pos]
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(labels)
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(labels)
+            caxis_H(ax)
 
         ## Colorbar
-        ax = fig.add_axes([Left+width+0.06, HB, 0.03, HH])
+        ax = fig.add_axes([Left+width+0.03, HB, 0.03, HH])
         fig.colorbar(sc, cax=ax)
 
         plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)

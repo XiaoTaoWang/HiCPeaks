@@ -599,7 +599,7 @@ def find_anchors(pos, min_count=3, min_dis=20000, wlen=800000, res=10000):
     wlen = min(wlen//res, 20)
 
     count = Counter(pos)
-    refidx = range(min(count), max(count)+1)
+    refidx = range(min(count)-1, max(count)+2) # extend 1 bin
     signal = np.r_[[count[i] for i in refidx]]
     summits = find_peaks(signal, height=min_count, distance=min_dis)[0]
     sorted_summits = [(signal[i],i) for i in summits]
