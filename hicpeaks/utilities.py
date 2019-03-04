@@ -48,7 +48,7 @@ def readChromSizes(chromsizes_file, chroms):
     
     return chromsizes
 
-def create_from_unordered(cool_uri, bins, chunks, columns=None, mergebuf=int(20e6),
+def create_from_unordered(cool_uri, bins, chunks, columns=None, dtypes=None, mergebuf=int(20e6),
                          delete_temp=True, temp_dir=None, **kwargs):
     """
     Create a Cooler in two passes via an external sort mechanism. In the first 
@@ -74,6 +74,12 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, mergebuf=int(20e
         'bin2_id', 'count'] can be provided, but are already assumed and don't 
         need to be given explicitly. Additional value columns provided here will 
         be stored as np.float64 unless otherwised specified using `dtype`.
+    dtypes : dict, optional
+        Dictionary mapping column names to dtypes. Can be used to override the
+        default dtypes of ``bin1_id``, ``bin2_id`` or ``count`` or assign
+        dtypes to custom value columns. Non-standard value columns given in
+        ``dtypes`` must also be provided in the ``columns`` argument or they
+        will be ignored.
     assembly : str, optional
         Name of genome assembly.
     mode : {'w' , 'a'}, optional [default: 'w']
@@ -111,12 +117,14 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, mergebuf=int(20e
         uris.append(uri)
         log.info('Writing chunk {}: {}'.format(i, uri))
         create_cooler(uri, bins, chunk, columns=columns, mode='a', boundscheck=False,
-                      triucheck=False, dupcheck=False, ensure_sorted=False, ordered=True)
+                      triucheck=False, dupcheck=False, ensure_sorted=False, ordered=True,
+                      dtypes=dtypes)
         
     chunks = CoolerMerger([Cooler(uri) for uri in uris], mergebuf)
 
     log.info('Merging into {}'.format(cool_uri))
-    create_cooler(cool_uri, bins, chunks, columns=columns, ordered=True, **kwargs)
+    create_cooler(cool_uri, bins, chunks, columns=columns, dtypes=dtypes, ordered=True,
+                  **kwargs)
 
 
 class Genome(object):
@@ -159,9 +167,13 @@ class Genome(object):
 
     onlyIntra : bool
         If specified, only include intra-chromosomal data.
+    
+    dtype : {'int', float}
+        The desired data type for your contact matrices.
 
     """
-    def __init__(self, datasets, outfil, assembly='hg38', chromsizes_file=None, chroms=['#','X'], onlyIntra=True):
+    def __init__(self, datasets, outfil, assembly='hg38', chromsizes_file=None, chroms=['#','X'], onlyIntra=True,
+        dtype='int'):
 
         self.outfil = os.path.abspath(os.path.expanduser(outfil))
         if os.path.exists(self.outfil):
@@ -237,16 +249,20 @@ class Genome(object):
                 mode = 'a'
             else:
                 mode = 'w'
+            if dtype == 'int':
+                dtypes = {'count': np.int32}
+            else:
+                dtypes = {'count': np.float64}
             cooler_uri = '{}::{}'.format(self.outfil, res)
             if self.onlyIntra:
                 create_cooler(cooler_uri, bintable, pixels, assembly=assembly, mode=mode,
                        boundscheck=False, triucheck=False, dupcheck=False, ensure_sorted=False,
-                       ordered=True, metadata={'onlyIntra':str(self.onlyIntra)})
+                       ordered=True, metadata={'onlyIntra':str(self.onlyIntra)}, dtypes=dtypes)
             else:
                 create_from_unordered(cooler_uri, bintable, pixels, assembly=assembly,
                                       mode=mode, metadata={'onlyIntra':str(self.onlyIntra)},
                                       delete_temp=True, boundscheck=False, triucheck=False,
-                                      dupcheck=False, ensure_sorted=False)
+                                      dupcheck=False, ensure_sorted=False, dtypes=dtypes)
             
     
     def  _generator(self, byres, chromsizes, bin_cumnums):

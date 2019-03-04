@@ -48,6 +48,8 @@ def getargs():
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
                         'with numerical labels. "--chroms" with zero argument will include '
                         'all chromosome data.')
+    parser.add_argument('--pixel-type', default='int', choices=['int','float'],
+                        help='''Data type of your contact matrices.''')
     parser.add_argument('--includeTrans', action='store_true',
                         help='If specified, also store trans-chromosomal data into cooler.')
     parser.add_argument('--assembly', help='Assembly name of the reference genome.')
@@ -118,7 +120,7 @@ def run():
             onlyIntra = False if args.includeTrans else True
             Genome(datasets=args.datasets, outfil=args.output,
                    assembly=args.assembly, chromsizes_file=args.chromsizes_file,
-                   chroms=args.chroms, onlyIntra=onlyIntra)
+                   chroms=args.chroms, onlyIntra=onlyIntra, dtype=args.pixel_type)
             
             if not args.no_balance:
                 for res in args.datasets:
