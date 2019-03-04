@@ -9,10 +9,10 @@ import os, sys, tempfile, logging, h5py
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from cooler.util import binnify
-from cooler.io import create, parse_cooler_uri, CoolerMerger
+from cooler.util import binnify, parse_cooler_uri
+from cooler.reduce import CoolerMerger
 from cooler.api import Cooler
-from cooler import ice
+from cooler import ice, create_cooler
 from multiprocess import Pool
 
 log = logging.getLogger(__name__)
@@ -48,9 +48,8 @@ def readChromSizes(chromsizes_file, chroms):
     
     return chromsizes
 
-def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None, 
-                         mergebuf=int(20e6), delete_temp=True, temp_dir=None, 
-                         multifile_merge=False, **kwargs):
+def create_from_unordered(cool_uri, bins, chunks, columns=None, mergebuf=int(20e6),
+                         delete_temp=True, temp_dir=None, **kwargs):
     """
     Create a Cooler in two passes via an external sort mechanism. In the first 
     pass, a sequence of data chunks are processed and sorted in memory and saved
@@ -75,11 +74,14 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None,
         'bin2_id', 'count'] can be provided, but are already assumed and don't 
         need to be given explicitly. Additional value columns provided here will 
         be stored as np.float64 unless otherwised specified using `dtype`.
-    dtype : dict, optional
-        Dictionary mapping column names in the pixel table to dtypes. Can be 
-        used to override the default dtypes of 'bin1_id', 'bin2_id' or 'count'. 
-        Any additional value column dtypes must also be provided in the
-        `columns` argument, or will be ignored.
+    assembly : str, optional
+        Name of genome assembly.
+    mode : {'w' , 'a'}, optional [default: 'w']
+        Write mode for the output file. 'a': if the output file exists, append
+        the new cooler to it. 'w': if the output file exists, it will be
+        truncated. Default is 'w'.
+    metadata : dict, optional
+        Experiment metadata to store in the file. Must be JSON compatible.
     mergebuf : int, optional
         Maximum number of records to buffer in memory at any give time during 
         the merge step.
@@ -88,19 +90,6 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None,
         Useful for debugging. Default is False.
     temp_dir : str, optional
         Create temporary files in this directory.
-    metadata : dict, optional
-        Experiment metadata to store in the file. Must be JSON compatible.
-    assembly : str, optional
-        Name of genome assembly.
-    h5opts : dict, optional
-        HDF5 dataset filter options to use (compression, shuffling,
-        checksumming, etc.). Default is to use autochunking and GZIP
-        compression, level 6.
-    append : bool, optional
-        Append new Cooler to the file if it exists. If False, an existing file
-        with the same name will be truncated. Default is False.
-    lock : multiprocessing.Lock, optional
-        Optional lock to control concurrent access to the output file.
 
     See also
     --------
@@ -110,9 +99,6 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None,
     """
     bins = bins.copy()
     bins['chrom'] = bins['chrom'].astype(object)
-
-    if dtype is None and 'dtypes' in kwargs:
-        dtype = kwargs.pop('dtypes')
 
     tf = tempfile.NamedTemporaryFile(
                 suffix='.multi.cool', 
@@ -124,13 +110,13 @@ def create_from_unordered(cool_uri, bins, chunks, columns=None, dtype=None,
         uri = tf.name + '::' + str(i)
         uris.append(uri)
         log.info('Writing chunk {}: {}'.format(i, uri))
-        create(uri, bins, chunk, columns=columns, dtype=dtype, append=True,
-               boundscheck=False, triucheck=False, dupcheck=False, ensure_sorted=False)
+        create_cooler(uri, bins, chunk, columns=columns, mode='a', boundscheck=False,
+                      triucheck=False, dupcheck=False, ensure_sorted=False, ordered=True)
         
     chunks = CoolerMerger([Cooler(uri) for uri in uris], mergebuf)
 
     log.info('Merging into {}'.format(cool_uri))
-    create(cool_uri, bins, chunks, columns=columns, dtype=dtype, **kwargs)
+    create_cooler(cool_uri, bins, chunks, columns=columns, ordered=True, **kwargs)
 
 
 class Genome(object):
@@ -248,17 +234,17 @@ class Genome(object):
             bintable = binnify(chromsizes, res)
             pixels = self._generator(byres, chromsizes, bin_cumnums)
             if os.path.exists(self.outfil):
-                append = True
+                mode = 'a'
             else:
-                append = False
+                mode = 'w'
             cooler_uri = '{}::{}'.format(self.outfil, res)
             if self.onlyIntra:
-                create(cooler_uri, bintable, pixels, assembly=assembly, append=append,
+                create_cooler(cooler_uri, bintable, pixels, assembly=assembly, mode=mode,
                        boundscheck=False, triucheck=False, dupcheck=False, ensure_sorted=False,
-                       metadata={'onlyIntra':str(self.onlyIntra)})
+                       ordered=True, metadata={'onlyIntra':str(self.onlyIntra)})
             else:
                 create_from_unordered(cooler_uri, bintable, pixels, assembly=assembly,
-                                      append=append, metadata={'onlyIntra':str(self.onlyIntra)},
+                                      mode=mode, metadata={'onlyIntra':str(self.onlyIntra)},
                                       delete_temp=True, boundscheck=False, triucheck=False,
                                       dupcheck=False, ensure_sorted=False)
             

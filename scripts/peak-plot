@@ -82,7 +82,7 @@ def run():
         import cooler
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
-
+        
         cmap = LinearSegmentedColormap.from_list('interaction',
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
         cmap.set_bad('#2672a1')
@@ -148,7 +148,7 @@ def run():
         M = np.ma.array(M, mask = Bool)
 
         # Plot
-        size = (12, 11)
+        size = (8, 7.3)
         width = 0.7; Left = 0.1
         HB = 0.1; HH = width * size[0] / size[1]
 
