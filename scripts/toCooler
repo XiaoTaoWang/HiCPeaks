@@ -55,6 +55,8 @@ def getargs():
                         help='''Path to the file containing chromosome size information.''')
     
     # ICE
+    parser.add_argument('--no-balance', action='store_true',
+                        help='''If specified, skip ICE balancing.''')
     parser.add_argument('--nproc', default=1, type=int,
                         help='Number of processes used in ICE.')
     
@@ -118,10 +120,11 @@ def run():
                    assembly=args.assembly, chromsizes_file=args.chromsizes_file,
                    chroms=args.chroms, onlyIntra=onlyIntra)
             
-            for res in args.datasets:
-                cooler_uri = '{}::{}'.format(cooler_path, res)
-                balance(cooler_uri, nproc=args.nproc)
-                logger.info('Done')
+            if not args.no_balance:
+                for res in args.datasets:
+                    cooler_uri = '{}::{}'.format(cooler_path, res)
+                    balance(cooler_uri, nproc=args.nproc)
+                    logger.info('Done')
                 
         except:
             traceback.print_exc(file = open(args.logFile, 'a'))
