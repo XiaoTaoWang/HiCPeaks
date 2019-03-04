@@ -107,8 +107,7 @@ Overview
   keeps all main concepts of the original algorithm except for these points which may be fixed in the near future:
 
   1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
-  2. *pyHICCUPS* cannot combine peak annotations at different resolutions.
-  3. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
+  2. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
 
   Although these differences, peaks returned by *pyHICCUPS* are quite consistent with our visual inspection, and
   generally follow the typical loop interaction patterns.
@@ -232,7 +231,7 @@ Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak
 
 For BH-FDR peaks::
 
-    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.05
+    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 29000000 -E 32000000 --correct --skip-rows 1
 
 The output figure should look like this:
 
@@ -242,7 +241,7 @@ The output figure should look like this:
 
 For HICCUPS peaks::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 29000000 -E 32000000 --correct --siglevel 0.1
+    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 29000000 -E 32000000 --correct --skip-row 1
 
 And the output plot:
 
@@ -280,6 +279,14 @@ sequencing data, at low (40K) and high (10K) resolutions.
 
 Release Notes
 =============
+Version 0.3.2 (03/03/2019)
+--------------------------
+1. Support combination of different resolutions
+2. Changed local clustering algorithm
+3. Add APA module
+4. Compatible with cooler 0.8
+5. Old distutils to setuptools
+
 Version 0.3.0 (09/03/2018)
 --------------------------
 1. Remove horizontal and vertical backgrounds for performance
