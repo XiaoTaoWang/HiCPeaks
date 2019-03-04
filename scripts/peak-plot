@@ -115,16 +115,21 @@ def run():
             # Read loop data
             loopType = np.dtype({'names':['chr','loc1','loc2','res'],
                                  'formats':['U5', np.int, np.int, np.int]})
+            check = open(loop_file, 'rb').readline().rstrip().split()
             loops = np.loadtxt(loop_file, dtype=loopType, skiprows=args.skip_rows, usecols=[0,1,2,3])
             loops = loops[(loops['chr']==chrom)]
     
             # Mask original matrix using loop data
             test_x = loops['loc1']
-            test_y = loops['loc2'] + loops['res']
+            if len(check)==4:
+                resarr = loops['res']
+            else:
+                resarr = np.ones(loops['res'].size, dtype=int) * res
+            test_y = loops['loc2'] + resarr
             mask = (test_x >= start) & (test_y < end)
             loops = loops[mask]
         
-            for x, y, orires in zip(loops['loc1'], loops['loc2'], loops['res']):
+            for x, y, orires in zip(loops['loc1'], loops['loc2'], resarr):
                 # Lodate the peak pixel at given resolution
                 s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
                 e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
