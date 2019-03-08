@@ -100,7 +100,7 @@ def run():
     
         nonzero = M[np.nonzero(M)]
         if args.vmin is None:
-            vmin = 0
+            vmin = nonzero.min()
         else:
             vmin = args.vmin
         if args.vmax is None:

@@ -40,7 +40,7 @@ def getargs():
                         help='''Width of the window in APA analysis.''')
     parser.add_argument('-C', '--corner-size', default=3, type=int,
                         help='''Lower-/upper-corner size of the resulted APA matrix.''')
-    
+        
     ## Parse the command-line arguments
     commands = sys.argv[1:]
     if not commands:
@@ -109,6 +109,8 @@ def run():
         apa = np.r_[apa]
         avg, score, z, p, maxi = apa_analysis(apa, w=args.window, cw=args.corner_size)
         plt.imshow(avg, cmap=plt.cm.Reds, vmax=maxi, interpolation='none')
+        plt.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
+                        labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         plt.title('APA score = {0:.3g}, p-value = {1:.3g} ({2})'.format(score, p, apa.shape[0]))
         plt.colorbar()
         plt.savefig(args.output, dpi=args.dpi)

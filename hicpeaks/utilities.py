@@ -438,7 +438,7 @@ def find_chrom_pre(chromlabels):
     
     else:
         return ''
-    
+ 
 def _parse_peakfile(filpath, skip=1):
     """
     Generate a peak annotation table.
