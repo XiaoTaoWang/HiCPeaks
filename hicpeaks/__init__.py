@@ -3,7 +3,7 @@
 # Author: XiaoTao Wang
 
 __author__ = 'XiaoTao Wang'
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 __license__ = 'GPLv3+'
 
 Me = __file__
