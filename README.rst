@@ -279,22 +279,28 @@ sequencing data, at low (40K) and high (10K) resolutions.
 
 Release Notes
 =============
+Version 0.3.3 (03/08/2019)
+--------------------------
+- Float matrix support in *toCooler* transformation
+- Removed ticklabels in APA plot
+
+
 Version 0.3.2 (03/03/2019)
 --------------------------
-1. Support combination of different resolutions
+1. Supported combination of different resolutions
 2. Changed local clustering algorithm
-3. Add APA module
+3. Added APA module
 4. Compatible with cooler 0.8
 5. Old distutils to setuptools
 
 Version 0.3.0 (09/03/2018)
 --------------------------
-1. Remove horizontal and vertical backgrounds for performance
-2. Support multiple parameters (pw and ww)
-3. Python 3 support
-4. Optimize the calculation
+1. Removed horizontal and vertical backgrounds for performance
+2. Supported multiple parameters (pw and ww)
+3. Supported Python 3
+4. Optimized the calculation
 5. Code refactoring
-6. Fix bugs when users provide with external .cool files.
+6. Fixed bugs when users provide with external .cool files.
 
 Version 0.2.0-r1 (08/26/2018)
 -----------------------------
