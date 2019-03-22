@@ -38,6 +38,8 @@ def getargs():
                         help='''The minimum value that the colorbar covers.''')
     parser.add_argument('--vmax', type=float,
                         help='''The maximum value that the colorbar covers.''')
+    parser.add_argument('--tick-num', type=int, default=2,
+                        help='''Number of ticks for genomic coordinates''')
     parser.add_argument('--nolabel', action='store_true',
                         help='''Whether or not add genomic coordinates.''')
     
@@ -166,8 +168,8 @@ def run():
                            labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         else:
             interval = (end - start) // res
-            ticks = list(np.linspace(0, interval, 6).astype(int))
-            pos = list(np.linspace(start, end, 6).astype(int))
+            ticks = list(np.linspace(0, interval, args.tick_num).astype(int))
+            pos = list(np.linspace(start, end, args.tick_num).astype(int))
             labels = [properU(p) for p in pos]
             ax.set_xticks(ticks)
             ax.set_xticklabels(labels)

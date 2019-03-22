@@ -8,7 +8,7 @@ Created on Wed Sep 26 20:06:27 2018
 import numpy as np
 from scipy.special import ndtr
 
-def apa_submatrix(M, pos, w=5, t=15):
+def apa_submatrix(M, pos, w=5):
     
     Len = M.shape[0]
 

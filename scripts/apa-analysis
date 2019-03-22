@@ -40,6 +40,8 @@ def getargs():
                         help='''Width of the window in APA analysis.''')
     parser.add_argument('-C', '--corner-size', default=3, type=int,
                         help='''Lower-/upper-corner size of the resulted APA matrix.''')
+    parser.add_argument('--vmax', type=float,
+                        help='''The maximum value that the colorbar covers.''')
         
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -64,6 +66,7 @@ def run():
         import cooler
         from hicpeaks.apa import apa_analysis, apa_submatrix
         from hicpeaks.utilities import _parse_peakfile, find_chrom_pre
+        from scipy import sparse
 
         ## extract Hi-C matrix
         hic_pool = cooler.Cooler(args.path)
@@ -77,6 +80,8 @@ def run():
         apa = []
         for c in peaks:
             chrom = pre + c
+            if not chrom in hic_pool.chromsizes:
+                continue
             M = hic_pool.matrix(balance=correct, sparse=True).fetch(chrom)
             M = M.tocsr()
 
@@ -85,6 +90,8 @@ def run():
             for p in peaks[c]:
                 orires = int(p[-1])
                 x, y = p[0], p[1]
+                if abs(y-x) < args.min_dis*res:
+                    continue
                 s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
                 e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
                 si, ei = None, None
@@ -103,12 +110,16 @@ def run():
                     else:
                         pos.append((ei, si))
                         
-            tmp = apa_submatrix(M, pos, w=args.window, t=args.min_dis)
+            tmp = apa_submatrix(M, pos, w=args.window)
             apa.extend(tmp)
         
         apa = np.r_[apa]
         avg, score, z, p, maxi = apa_analysis(apa, w=args.window, cw=args.corner_size)
-        plt.imshow(avg, cmap=plt.cm.Reds, vmax=maxi, interpolation='none')
+        if args.vmax is None:
+            vmax = maxi
+        else:
+            vmax = args.vmax
+        plt.imshow(avg, cmap=plt.cm.Reds, vmax=vmax, interpolation='none')
         plt.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
                         labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         plt.title('APA score = {0:.3g}, p-value = {1:.3g} ({2})'.format(score, p, apa.shape[0]))
