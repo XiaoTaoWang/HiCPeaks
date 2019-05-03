@@ -42,19 +42,20 @@ After that, update the environment variables to finish the Conda installation::
 
 Install Packages through Conda
 ------------------------------
-First, add some additional channels in this way (note that the order is important to guarantee the correct priority)::
-
+First set up the channels to make all packages listed above accessible (note that the order is
+important to guarantee the correct priority)::
+    
     $ conda config --add channels defaults
     $ conda config --add channels bioconda
     $ conda config --add channels conda-forge
 
-Then install all requirements above by executing the following command::
+Then just type and execute the following command::
 
     $ conda install numpy scipy matplotlib pandas statsmodels scikit-learn h5py multiprocess cooler ucsc-fetchchromsizes
 
 Install hicpeaks
 ----------------
-Now just download the `hicpeaks source code <https://pypi.org/project/hicpeaks/>`_ from PyPI, extract it and run
+Now download the `hicpeaks source code <https://pypi.org/project/hicpeaks/>`_ from PyPI, extract it and run
 the setup.py script::
 
     $ python setup.py install
