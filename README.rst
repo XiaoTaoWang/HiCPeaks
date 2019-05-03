@@ -42,26 +42,15 @@ After that, update the environment variables to finish the Conda installation::
 
 Install Packages through Conda
 ------------------------------
-Conda allows separation of packages into separate repositories, or channels. The main *defaults*
-channel has a large amount of common packages including *numpy*, *scipy*, *pandas*, *statsmodels*,
-*scikit-learn*, and *h5py* listed above. To install these packages, type and execute the following
-command::
+First, add some additional channels in this way (note that the order is important to guarantee the correct priority)::
 
-    $ conda install numpy scipy matplotlib pandas statsmodels scikit-learn h5py
-
-Other packages: *cooler* and *ucsc-fetchchromsizes* are not available in the *defaults* channel
-but included in the *bioconda* channel, and *multiprocess* is included in the *conda-forge* channel.
-To make them accessible, you need to add the *bioconda* channel as well as the other channels bioconda
-depends on (note that the order is important to guarantee the correct priority)::
-
-    $ conda config --add channels conda-forge
     $ conda config --add channels defaults
-    $ conda config --add channels r
     $ conda config --add channels bioconda
+    $ conda config --add channels conda-forge
 
-To install these requirements::
+Then install all requirements above by executing the following command::
 
-    $ conda install multiprocess cooler ucsc-fetchchromsizes
+    $ conda install numpy scipy matplotlib pandas statsmodels scikit-learn h5py multiprocess cooler ucsc-fetchchromsizes
 
 Install hicpeaks
 ----------------
