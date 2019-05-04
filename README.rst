@@ -1,6 +1,6 @@
 HiCPeaks
 ========
-*hicpeaks* provide a Python CPU-based implementation for BH-FDR and HICCUPS, two peak calling algorithms
+*hicpeaks* provide a Python CPU-based implementation for BH-FDR and HiCCUPS, two peak calling algorithms
 for Hi-C data, proposed by Rao et al [1]_.
 
 Installation
@@ -60,12 +60,9 @@ the setup.py script::
 
     $ python setup.py install
 
-*hicpeaks* would be installed successfully if no exception occurs in the above process.
-
-
 Overview
 ========
-*hicpeaks* comes with 4 scripts: *toCooler*, *pyBHFDR*, *pyHICCUPS* and *peak-plot*.
+*hicpeaks* comes with 6 scripts: *toCooler*, *pyBHFDR*, *pyHICCUPS*, *combine-resolutions*, *peak-plot* and *apa-analysis*.
 
 - toCooler
 
@@ -83,30 +80,32 @@ Overview
 
 - pyBHFDR
 
-  A CPU-based python implementation for BH-FDR algorithm. Rao et al states in their supplementary material that
-  this algorithm is robust enough to obtain all main results of their paper. Compared with HICCUPS, BH-FDR doesn't use
+  A CPU-based python implementation for BH-FDR algorithm. Rao et al (2014) states in their supplementary material that
+  this algorithm is robust enough to obtain all main results of their paper. Compared with HiCCUPS, BH-FDR doesn't use
   λ-chunk in multiple hypothesis test, and only considers the Donut background region when calculating the
   expected values.
 
 - pyHICCUPS
 
-  A CPU-based python implementation for HICCUPS algorithm. Besides the donut region, HICCUPS also considers the
+  A CPU-based python implementation for HiCCUPS algorithm. Besides the donut region, HiCCUPS also considers the
   lower-left, vertical and horizontal backgrounds when calculating the expected values. And λ-chunk is used to overcome
   several multiple hypothesis testing challenges for Hi-C data. Finally, while BH-FDR has to limit the detected pixels
-  near the diagonal (<2Mb), HICCUPS is able to generalize itself to any genomic distance in theory. Here, *pyHICCUPS*
-  keeps all main concepts of the original algorithm except for these points which may be fixed in the near future:
+  near the diagonal (<2Mb), HiCCUPS is able to generalize itself to any genomic distance in theory. Here, *pyHICCUPS*
+  keeps all main concepts of the original algorithm except for these points:
 
   1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
-  2. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
+  2. There are two critical parameters related to the loop definition in HiCCUPS: the peak width *p* and the donut width *w*. In original implementation, they are set exclusively for each certain resolution, specifically, *p=1* and *w=3* at 25Kb, *p=2* and *w=5* at 10Kb, and *p=4* and *w=7* at 5Kb. To improve the sensitivity, *pyHICCUPS* calculates and outputs the union of the peak calls from all parameter settings *(1,3)*, *(2,5)*, *(4,7)* in a single run.
+  3. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
 
-  Although these differences, peaks returned by *pyHICCUPS* are quite consistent with our visual inspection, and
-  generally follow the typical loop interaction patterns.
+- combine-resolutions
+
+  Combine peak calls from different resolutions in a way similar to original *HiCCUPS*. Briefly, it excludes redundant lower
+  
 
 - peak-plot
 
   Visualize peaks (or loops) detected by *pyBHFDR* or *pyHICCUPS* on heatmap. Just provide a cooler file and a loop
-  annotation file, and input your interested region (chrom, start, end), *peak-plot* will export the figure in PNG
-  format.
+  annotation file in *bedpe* format, and input your interested region (chrom, start, end), *peak-plot* will export the figure in PNG format.
 
 
 QuickStart
