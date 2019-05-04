@@ -173,9 +173,6 @@ def run():
 
         logger.info('Calling Peaks ...')
         OF = open(args.output, 'w')
-        head = '\t'.join(['chromLabel', 'loc_1', 'loc_2', 'centroid_x', 'centroid_y','radius','IF', 'D-Enrichment',
-                          'D-pvalue', 'D-qvalue', 'LL-Enrichment', 'LL-pvalue', 'LL-qvalue']) + '\n'
-        OF.write(head)
 
         Params = []
         for key in Lib.chromnames:

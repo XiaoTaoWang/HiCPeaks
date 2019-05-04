@@ -133,31 +133,30 @@ working directory to the sub-folder *example*::
     $ cd example
     $ ls -lh *
 
-    -rw-r--r--  1 xtwang  staff    18B Aug 21 19:46 datasets
-    -rw-r--r--  1 xtwang  staff   293B Aug 23 20:53 hg38.chromsizes
+    -rw-r--r-- 1 xtwang  18 May  4 18:00 datasets
+    -rw-r--r-- 1 xtwang 293 May  4 18:00 hg38.chromsizes
 
-    40K:
-    total 11608
-    -rw-r--r--  1 xtwang  staff   2.7M Aug 21 19:44 21_21.txt
-    -rw-r--r--  1 xtwang  staff   2.9M Aug 21 19:44 22_22.txt
+    25K:
+    total 12M
+    -rw-r--r-- 1 xtwang 12M May  4 18:00 21_21.txt
 
-There are one sub-directory called *40K* which contains Hi-C data of two chromosomes in K562 cell line at 40K resolution,
-and one metadata file *datasets* which we can pass directly to *toCooler*::
+There is one sub-directory called *25K* which contains interactions within the smallest chromosome in K562 cell line at
+25K resolution, and one metadata file *datasets* which we can pass directly to *toCooler*::
 
-    $ cd 40K
+    $ cd 25K
     $ head -5 21_21.txt
 
-    250	251	1
-    250	258	1
-    250	259	1
-    250	260	4
-    250	261	2
+    201	703	1
+    201	1347	1
+    201	1351	1
+    201	1524	1
+    201	1691	1
 
     $ cd ..
     $ cat datasets
 
-    res:40000
-      ./40K
+    res:25000
+      ./25K
 
 You should construct your TXT files (no head, no tail) with 3 columns, which indicate "bin1 of the 1st chromosome",
 "bin2 of the 2nd chromosome" and "contact frequency" respectively. See `Overview <https://github.com/XiaoTaoWang/HiCPeaks#overview>`_
@@ -165,7 +164,7 @@ above.
 
 To transform this data to *cooler* format, just run the command below::
 
-    $ toCooler -O K562-MboI-parts.cool -d datasets --assembly hg38 --nproc 2
+    $ toCooler -O K562-MboI-parts.cool -d datasets --assembly hg38 --nproc 1
 
 *toCooler* routinely fetch sizes of each chromosome from UCSC with the provided genome assembly name (here hg38).
 However, if your reference genome is not holded in UCSC, you can also build a file like "hg38.chromsizes" in
@@ -174,7 +173,7 @@ current working directory, and pass the file path to the argument "--chromsizes-
 Type ``toCooler`` with no arguments on your terminal to print detailed help information for each parameter.
 
 For this datasets, *toCooler* will create a cooler file named "K562-MboI-parts.cool", and your data will be stored under
-the URI "K562-MboI-parts.cool::40000".
+the URI "K562-MboI-parts.cool::25000".
 
 This tutorial only illustrates a very simple case, in fact the metadata file may contain list of resolutions (if you
 have data at different resolutions for the same cell line) and corresponding folder paths (both relative and absolute
@@ -183,14 +182,14 @@ path are accepted, and if your data are NPZ format, this path should point to th
     res:10000
       /absoultepath/10K
     
-    res:20000
-      ../relativepath/20K
+    res:25000
+      ../relativepath/25K
     
     res:40000
       /npzfile/anyprefix.npz
 
 Then *toCooler* will generate a single cooler file storing all the specified data under different cooler URI:
-"specified_cooler_path::10000", "specified_cooler_path::20000" and "specified_cooler_path::40000".
+"specified_cooler_path::10000", "specified_cooler_path::25000" and "specified_cooler_path::40000".
 
 pyBHFDR and pyHICCUPS
 ---------------------
@@ -208,16 +207,16 @@ Before step to the next section, let's list the contents under current working d
 
     $ ls -lh
 
-    total 1744
-    drwxr-xr-x  5 xtwang  staff   160B Sep  3 14:55 40K
-    -rw-r--r--  1 xtwang  staff   3.9K Sep  3 14:58 BHFDR.log
-    -rw-r--r--  1 xtwang  staff    17K Sep  3 14:59 HICCUPS.log
-    -rw-r--r--  1 xtwang  staff    16K Sep  3 14:58 K562-MboI-BHFDR-loops.txt
-    -rw-r--r--  1 xtwang  staff    19K Sep  3 14:59 K562-MboI-HICCUPS-loops.txt
-    -rw-r--r--  1 xtwang  staff   704K Sep  3 14:57 K562-MboI-parts.cool
-    -rw-r--r--  1 xtwang  staff    18B Sep  3 14:55 datasets
-    -rw-r--r--  1 xtwang  staff   293B Sep  3 14:55 hg38.chromsizes
-    -rw-r--r--  1 xtwang  staff    29K Sep  3 14:57 tocooler.log
+    total 852K
+    drwxr-xr-x 4 xtwang  128 May  4 18:21 25K/
+    -rw-r--r-- 1 xtwang  17K May  4 18:23 K562-MboI-BHFDR-loops.txt
+    -rw-r--r-- 1 xtwang  15K May  4 18:23 K562-MboI-HICCUPS-loops.txt
+    -rw-r--r-- 1 xtwang 723K May  4 18:22 K562-MboI-parts.cool
+    -rw-r--r-- 1 xtwang   18 May  4 18:21 datasets
+    -rw-r--r-- 1 xtwang  293 May  4 18:21 hg38.chromsizes
+    -rw-r--r-- 1 xtwang 2.2K May  4 18:23 pyBHFDR.log
+    -rw-r--r-- 1 xtwang 8.5K May  4 18:23 pyHICCUPS.log
+    -rw-r--r-- 1 xtwang  17K May  4 18:22 tocooler.log
 
 The detected loops are reported in a customized `bedpe <https://bedtools.readthedocs.io/en/latest/content/general-usage.html#bedpe-format>`_
 format. The first 10 columns are identical to the `official definition <https://bedtools.readthedocs.io/en/latest/content/general-usage.html#bedpe-format>`_,
@@ -234,21 +233,11 @@ Peak Visualization
 ------------------
 Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak-plot*.
 
-For BH-FDR peaks::
-
-    $ peak-plot -O test-BHFDR.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 20700000 -E 23300000 --correct --skip-rows 1
-
-The output figure should look like this:
-
-.. image:: ./figures/test-BHFDR.png
-        :align: center
-
-
 For HICCUPS peaks::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 20700000 -E 23300000 --correct --skip-row 1
+    $ peak-plot -O test-HICCUPS.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 25000000 -E 31000000 --correct
 
-And the output plot:
+The output figure should look like this:
 
 .. image:: ./figures/test-HICCUPS.png
         :align: center
@@ -258,7 +247,12 @@ Aggregate Peak Analysis
 -----------------------
 To inspect the overall loop patterns of the detected peaks, you can use the *apa-analysis* script::
 
-    $ 
+    $ apa-analysis -O apa.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -U
+
+The output plot should look like this:
+
+.. image:: ./figures/apa.png
+        :align: center
 
 Combine different resolutions
 -----------------------------
@@ -301,11 +295,15 @@ sequencing data, at low (40K) and high (10K) resolutions.
 
 Release Notes
 =============
+Version 0.3.4 (05/04/2019)
+--------------------------
+- Improved the local clustering efficiency
+- Changed output loop format to bedpe
+
 Version 0.3.3 (03/08/2019)
 --------------------------
 - Float matrix support in *toCooler* transformation
 - Removed ticklabels in APA plot
-
 
 Version 0.3.2 (03/03/2019)
 --------------------------

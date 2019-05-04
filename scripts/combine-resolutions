@@ -27,7 +27,7 @@ def getargs():
                         help = 'List of peak file paths at different resolutions.')
     parser.add_argument('-R', '--resolutions', type=int, nargs='+',
                         help = '''List of resolutions corresponding to the input peak files.''')
-    parser.add_argument('-S', '--skip-rows', type=int, default=1,
+    parser.add_argument('-S', '--skip-rows', type=int, default=0,
                         help = '''Number of leading lines to skip.''')
     parser.add_argument('-G', '--good-res', type=int, default=20000,
                         help='''Peaks detected at finer resolutions (less than this value) are
