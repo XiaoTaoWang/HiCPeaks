@@ -590,13 +590,13 @@ def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     return pixel_table
 
 
-def find_anchors(pos, min_count=3, min_dis=20000, wlen=800000, res=10000):
+def find_anchors(pos, min_count=3, min_dis=20000, wlen=200000, res=10000):
 
     from collections import Counter
     from scipy.signal import find_peaks, peak_widths
 
     min_dis = max(min_dis//res, 1)
-    wlen = min(wlen//res, 20)
+    wlen = min(wlen//res, 10)
 
     count = Counter(pos)
     refidx = range(min(count)-1, max(count)+2) # extend 1 bin
@@ -689,12 +689,14 @@ def local_clustering(Donuts, LL, res, onlysummit=False, min_count=3, r=20000, su
     y_anchors = find_anchors(y, min_count=min_count, min_dis=r, res=res)
     r = max(r//res, 1)
     visited = set()
+    lookup = set(zip(x, y))
     for x_a in x_anchors:
         for y_a in y_anchors:
             sort_list = []
-            for i, j in zip(x, y):
-                if (i>=x_a[1]) and (i<=x_a[2]) and (j>=y_a[1]) and (j<=y_a[2]):
-                    sort_list.append((Donuts[(i,j)][0], (i,j)))
+            for i in range(x_a[1], x_a[2]+1):
+                for j in range(y_a[1], y_a[2]+1):
+                    if (i, j) in lookup:
+                        sort_list.append((Donuts[(i,j)][0], (i,j)))
             sort_list.sort(reverse=True)
             _cluster_core(sort_list, r, visited, final_list)
     

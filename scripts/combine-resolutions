@@ -11,7 +11,7 @@ currentVersion = hicpeaks.__version__
 def getargs():
     ## Construct an ArgumentParser object for command-line arguments
     parser = argparse.ArgumentParser(usage = '%(prog)s <-O output> [options]',
-                                     description = 'Combine peak annotations at different resolutions.',
+                                     description = 'Combine loop calls from different resolutions.',
                                      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     
     # Version
