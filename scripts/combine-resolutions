@@ -66,8 +66,8 @@ def run():
                                         max_res=args.max_res)
 
         with open(args.output, 'w') as out:
-            for tmp in peak_list:
-                line = (tmp[0], str(tmp[1]), str(tmp[2]), str(tmp[3]))
+            for t in peak_list:
+                line = ('chr'+t[0], str(t[1]), str(t[2]), 'chr'+t[3], str(t[4]), str(t[5]))
                 out.write('\t'.join(line)+'\n')
 
 if __name__ == '__main__':

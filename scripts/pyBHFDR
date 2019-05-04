@@ -169,7 +169,8 @@ def run():
             for pixel in pixel_table:
                 lineFormat = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7:.3g}\t{8}\t{9}\t{10:.3g}\t{11:.3g}\t{12:.3g}\n'
                 tmp = pixel_table[pixel]
-                content = (key, pixel[0], pixel[0]+res, key, pixel[1], pixel[1]+res, '.', tmp[3], '.', '.') + tmp[4:]
+                c = 'chr'+key.lstrip('chr')
+                content = (c, pixel[0], pixel[0]+res, c, pixel[1], pixel[1]+res, '.', tmp[3], '.', '.') + tmp[4:]
                 line = lineFormat.format(*content)
                 OF.write(line)
                     

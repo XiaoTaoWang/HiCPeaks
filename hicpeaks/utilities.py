@@ -502,7 +502,8 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
         for r in byres:
             for c in byres[r]:
                 for p in byres[r][c]:
-                    peak_list.append((c,)+p[:2]+(r,))
+                    tmp = (c,) + p[:2] + (c,) + p[2:]
+                    peak_list.append(tmp)
         return peak_list
     
     reslist = sorted(byres)
@@ -515,18 +516,18 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
             tmp2 = byres[reslist[j]]
             for c in tmp1:
                 if c in tmp2:
-                    ref = [(t[0],t[1]) for t in tmp2[c]]
+                    ref = [(t[0],t[2]) for t in tmp2[c]]
                 else:
                     ref = []
                 for p in tmp1[c]:
-                    key = (c,) + p[:2] + (reslist[i],)
-                    if key[:3] in record:
+                    key = (c,) + p[:2] + (c,) + p[2:]
+                    if key in record:
                         continue
                     if not len(ref):
-                        if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[1]-p[0] <= mindis)):
+                        if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[2]-p[0] <= mindis)):
                             peak_list.add(key)
                         continue
-                    dis = distance_matrix([(p[0],p[1])], ref).ravel()
+                    dis = distance_matrix([(p[0],p[2])], ref).ravel()
                     if reslist[i]<20000 and reslist[j]<20000:
                         mask = dis <= thre1
                     else:
@@ -534,16 +535,16 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
                     if mask.sum() > 0:
                         peak_list.add(key)
                         for idx in np.where(mask)[0]:
-                            record.add((c,)+tmp2[c][idx][:2])
+                            record.add((c,)+tmp2[c][idx][:2]+(c,)+tmp2[c][idx][2:])
                     else:
-                        if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[1]-p[0] <= mindis)):
+                        if (reslist[i]<=max_res) and ((reslist[i]>=good_res) or (p[2]-p[0] <= mindis)):
                             peak_list.add(key)
     
     for c in byres[reslist[-1]]:
         for p in byres[reslist[-1]][c]:
-            key = (c,) + p[:2] + (reslist[-1],)
-            if (not key[:3] in record):
-                if (reslist[-1]<=max_res) and ((reslist[-1]>=good_res) or (p[1]-p[0] <= mindis)):
+            key = (c,) + p[:2] + (c,) + p[2:]
+            if (not key in record):
+                if (reslist[-1]<=max_res) and ((reslist[-1]>=good_res) or (p[2]-p[0] <= mindis)):
                     peak_list.add(key)
     
     peak_list = sorted(peak_list)
