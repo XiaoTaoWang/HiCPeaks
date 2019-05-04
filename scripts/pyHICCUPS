@@ -12,7 +12,7 @@ currentVersion = hicpeaks.__version__
 def getargs():
     ## Construct an ArgumentParser object for command-line arguments
     parser = argparse.ArgumentParser(usage = '%(prog)s <-O output> [options]',
-                                     description = 'Local Peak Calling for Hi-C Data',
+                                     description = 'A CPU-based implementation for HiCCUPS algorithm.',
                                      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     
     # Version
@@ -22,7 +22,7 @@ def getargs():
 
     # Output
     parser.add_argument('-O', '--output', help = 'Output peak file path.')
-    parser.add_argument('--logFile', default = 'HICCUPS.log', help = 'Logging file name.')
+    parser.add_argument('--logFile', default = 'pyHICCUPS.log', help = 'Logging file name.')
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
     group_1.add_argument('-p', '--path',
@@ -39,8 +39,8 @@ def getargs():
                          help='''List of the peak widths.''')
     group_2.add_argument('--ww', type=int, nargs='+',
                          help='''List of the donut widths.''')
-    group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
-    group_2.add_argument('--siglevel', type = float, default = 0.1, help = 'Significant Level.')
+    group_2.add_argument('--maxww', type = int, default = 10, help = 'Maximum donut width.')
+    group_2.add_argument('--siglevel', type = float, default = 0.05, help = 'Significant Level.')
     group_2.add_argument('--sumq', type = float, default = 0.01,
                          help = '''During the additional filtering, original peak pixels would be
                          filtered out if there are no other peak pixels located in its neighborhood
@@ -56,12 +56,12 @@ def getargs():
     group_2.add_argument('--use-raw', action = 'store_true',
                         help = '''When specified, peak pixels will be sorted by raw observed interaction
                         frequencies during local clustering. By default, ICE-corrected values will be used.''')
-    group_2.add_argument('--min-marginal-peaks', type = int, default = 3,
+    group_2.add_argument('--min-marginal-peaks', type = int, default = 2,
                         help = '''Minimum marginal number of peaks when detecting peak anchors.''')
     group_2.add_argument('--only-anchors', action = 'store_true',
                          help = '''When specified, either of the peak loci must be an anchor.''')
     group_2.add_argument('--maxapart', type = int, default = 10000000, help = 'Maximum genomic'
-                         ' distance between two involved loci.')
+                         ' distance between two loci.')
     group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
     
     ## Parse the command-line arguments

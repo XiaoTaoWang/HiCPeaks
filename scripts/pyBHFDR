@@ -12,7 +12,7 @@ currentVersion = hicpeaks.__version__
 def getargs():
     ## Construct an ArgumentParser object for command-line arguments
     parser = argparse.ArgumentParser(usage = '%(prog)s <-O output> [options]',
-                                     description = 'Local Peak Calling for Hi-C Data',
+                                     description = 'A CPU-based implementation for BH-FDR algorithm.',
                                      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     
     # Version
@@ -22,11 +22,11 @@ def getargs():
 
     # Output
     parser.add_argument('-O', '--output', help = 'Output peak file path.')
-    parser.add_argument('--logFile', default = 'BHFDR.log', help = 'Logging file name.')
+    parser.add_argument('--logFile', default = 'pyBHFDR.log', help = 'Logging file name.')
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
     group_1.add_argument('-p', '--path',
-                         help = 'URI string pointing to a cooler under specific resolution.')
+                         help = 'Cooler URI.')
     group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
                         help = 'List of chromosome labels. Only Hi-C data within the specified '
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
@@ -40,10 +40,10 @@ def getargs():
                          ' to 1 at 20 kb, 2 at 10 kb, and 4 at 5 kb.')
     group_2.add_argument('--ww', type = int, default = 5, help = 'Width of the donut '
                          'sampled. Set it to 3 at 20 kb, 5 at 10 kb, and 7 at 5 kb.')
-    group_2.add_argument('--maxww', type = int, default = 20, help = 'Maximum donut width.')
+    group_2.add_argument('--maxww', type = int, default = 10, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.05, help = 'Significant Level.')
     group_2.add_argument('--maxapart', type = int, default = 2000000, help = 'Maximum genomic'
-                         ' distance between two involved loci.')
+                         ' distance between two loci.')
     group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
     
     ## Parse the command-line arguments

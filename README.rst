@@ -94,18 +94,26 @@ Overview
   keeps all main concepts of the original algorithm except for these points:
 
   1. *pyHICCUPS* excludes vertical and horizontal backgrounds from its calculation.
-  2. There are two critical parameters related to the loop definition in HiCCUPS: the peak width *p* and the donut width *w*. In original implementation, they are set exclusively for each certain resolution, specifically, *p=1* and *w=3* at 25Kb, *p=2* and *w=5* at 10Kb, and *p=4* and *w=7* at 5Kb. To improve the sensitivity, *pyHICCUPS* calculates and outputs the union of the peak calls from all parameter settings *(1,3)*, *(2,5)*, *(4,7)* in a single run.
+  2. There are two critical parameters related to the loop definition in HiCCUPS: the peak width *p* and the donut width *w*.
+     In original implementation, they are set exclusively for each certain resolution, specifically, *p=1* and *w=3* at 25Kb,
+     *p=2* and *w=5* at 10Kb, and *p=4* and *w=7* at 5Kb. To improve the sensitivity, *pyHICCUPS* calculates and outputs
+     the union of the peak calls from all parameter settings *(1,3)*, *(2,5)*, *(4,7)* in a single run.
   3. Due to computational complexity, you should still limit the genomic distance of 2 loci to some degree (5Mb/10Mb).
 
 - combine-resolutions
 
   Combine peak calls from different resolutions in a way similar to original *HiCCUPS*. Briefly, it excludes redundant lower
-  
+  resolution peaks while filters out low-confidence high resolution peaks.
 
 - peak-plot
 
-  Visualize peaks (or loops) detected by *pyBHFDR* or *pyHICCUPS* on heatmap. Just provide a cooler file and a loop
-  annotation file in *bedpe* format, and input your interested region (chrom, start, end), *peak-plot* will export the figure in PNG format.
+  Visualize peaks (or loops) detected by *pyBHFDR* or *pyHICCUPS* on heatmap. Just provide a cooler file, a loop
+  annotation file in *bedpe* format, and input your interested region (chrom, start, end).
+
+- apa-analysis
+
+  Perform Aggregate Peak Analysis (APA). The inputs are a Hi-C matrix in *.cool* format and a loop annotation file in
+  *.bedpe* format.
 
 
 QuickStart
@@ -169,7 +177,7 @@ For this datasets, *toCooler* will create a cooler file named "K562-MboI-parts.c
 the URI "K562-MboI-parts.cool::40000".
 
 This tutorial only illustrates a very simple case, in fact the metadata file may contain list of resolutions (if you
-have data at different resolutions in the same cell line) and corresponding folder paths (both relative and absolute
+have data at different resolutions for the same cell line) and corresponding folder paths (both relative and absolute
 path are accepted, and if your data are NPZ format, this path should point to the NPZ file)::
 
     res:10000
@@ -188,14 +196,11 @@ pyBHFDR and pyHICCUPS
 ---------------------
 With cooler URI, you can perform peak annotation by *pyBHFDR* or *pyHICCUPS*::
 
-    $ pyBHFDR -O K562-MboI-BHFDR-loops.txt -p K562-MboI-parts.cool::40000 -C 21 22 --pw 1 --ww 3
+    $ pyBHFDR -O K562-MboI-BHFDR-loops.txt -p K562-MboI-parts.cool::25000 -C 21 --pw 1 --ww 3
 
 Or::
 
-    $ pyHICCUPS -O K562-MboI-HICCUPS-loops.txt -p K562-MboI-parts.cool::40000 --pw 1 2 4 --ww 3 5 7
-
-.. note:: *pyHICCUPS* supports multiple parameters since 0.3.0, in which case it will combine peak annotations
-          from different parameter settings automatically.
+    $ pyHICCUPS -O K562-MboI-HICCUPS-loops.txt -p K562-MboI-parts.cool::25000 --pw 1 2 4 --ww 3 5 7 --only-anchors
 
 Type ``pyBHFDR`` or ``pyHICCUPS`` on your terminal to print detailed help information for each parameter.
 
@@ -220,7 +225,7 @@ Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak
 
 For BH-FDR peaks::
 
-    $ peak-plot -O test-BHFDR.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 29000000 -E 32000000 --correct --skip-rows 1
+    $ peak-plot -O test-BHFDR.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-BHFDR-loops.txt -C 21 -S 20700000 -E 23300000 --correct --skip-rows 1
 
 The output figure should look like this:
 
@@ -230,12 +235,29 @@ The output figure should look like this:
 
 For HICCUPS peaks::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 250 -p K562-MboI-parts.cool::40000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 29000000 -E 32000000 --correct --skip-row 1
+    $ peak-plot -O test-HICCUPS.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 20700000 -E 23300000 --correct --skip-row 1
 
 And the output plot:
 
 .. image:: ./figures/test-HICCUPS.png
         :align: center
+
+
+Aggregate Peak Analysis
+-----------------------
+To inspect the overall loop patterns of the detected peaks, you can use the *apa-analysis* script::
+
+    $ 
+
+Combine different resolutions
+-----------------------------
+The inputs to *combine-resolutions* are loop annotation files (*bedpe*) at different resolutions. If an interaction
+is detected as a peak in both resolutions, this script records the precise coordinates in finer resolutions and discards
+the coarser resolution one. And a long-range (determined by the ``--min-dis`` parameter) peak call at high resolutions
+(determined by the ``--good-res`` parameter) will be treated as a false positive if it could not be identified at lower
+resolutions. Here's a *pseudo* command with 3 loop files at 5Kb, 10Kb, and 20Kb respectively::
+
+    $ combine-resolutions -O K562-MboI-pyHICCUPS-combined.bedpe -p K562-MboI-pyHICCUPS-5K.txt K562-MboI-pyHICCUPS-10K.txt K562-MboI-pyHICCUPS-20K.txt -R 5000 10000 20000 -G 20000 -M 100000
 
 Performance
 ===========
@@ -264,7 +286,7 @@ sequencing data, at low (40K) and high (10K) resolutions.
 +--------------+----------------+--------------+--------------+--------------+--------------+--------------+--------------+
 
 .. note:: Both *pyBHFDR* and *pyHICCUPS* support multiple processes (``--nproc``). If your computer has sufficient memory, the
-          calculation should end within 30 minutes.
+          calculation should end within 30 minutes even for high resolutions.
 
 Release Notes
 =============
