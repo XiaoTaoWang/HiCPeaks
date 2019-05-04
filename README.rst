@@ -219,6 +219,17 @@ Before step to the next section, let's list the contents under current working d
     -rw-r--r--  1 xtwang  staff   293B Sep  3 14:55 hg38.chromsizes
     -rw-r--r--  1 xtwang  staff    29K Sep  3 14:57 tocooler.log
 
+The detected loops are reported in a customized `bedpe <https://bedtools.readthedocs.io/en/latest/content/general-usage.html#bedpe-format>`_
+format. The first 10 columns are identical to the `official definition <https://bedtools.readthedocs.io/en/latest/content/general-usage.html#bedpe-format>`_,
+and the additional fields are:
+
+11. Fold enrichment score calculated from the donut background.
+12. The p value calculated from the donut background.
+13. The q value calculated from the donut background.
+14. Fold enrichment score calculated from the lower-left background.
+15. The p value calculated from the lower-left background.
+16. The q value calculated from the lower-left background.
+
 Peak Visualization
 ------------------
 Now, you can visualize BH-FDR and HICCUPS peak annotations on heatmap with *peak-plot*.

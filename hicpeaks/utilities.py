@@ -450,7 +450,7 @@ def _parse_peakfile(filpath, skip=1):
                 continue
             parse = line.rstrip().split()
             chrom = parse[0]
-            info = (int(parse[1]),int(parse[2])) + tuple(parse[3:])
+            info = (int(parse[1]), int(parse[2]), int(parse[4]), int(parse[5]))
             if chrom in D:
                 D[chrom].append(info)
             else:
@@ -459,13 +459,10 @@ def _parse_peakfile(filpath, skip=1):
     # consistent chrom labels
     keys = list(D.keys())
     pre = find_chrom_pre(keys)
-    if not pre:
-        new = {}
-        for chrom in D:
-            k = chrom.lstrip(pre)
-            new[k] = D[chrom]
-    else:
-        new = D
+    new = {}
+    for chrom in D:
+        k = chrom.lstrip(pre)
+        new[k] = D[chrom]
 
     return new
 

@@ -21,7 +21,7 @@ def getargs():
                         help='Print version number and exit.')
 
     # Output
-    parser.add_argument('-O', '--output', help = 'Output peak file path.')
+    parser.add_argument('-O', '--output', help = 'Output bedpe file name.')
     parser.add_argument('--logFile', default = 'pyBHFDR.log', help = 'Logging file name.')
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
@@ -143,7 +143,7 @@ def run():
         
         logger.info('Loading Hi-C data ...')
         Lib = cooler.Cooler(args.path)
-        resolution = Lib.binsize
+        res = Lib.binsize
 
         logger.info('Calling Peaks ...')
         OF = open(args.output, 'w')
@@ -155,7 +155,7 @@ def run():
         for key in Lib.chromnames:
             chromlabel = key.lstrip('chr')
             if ((not args.chroms) or (chromlabel.isdigit() and '#' in args.chroms) or (chromlabel in args.chroms)):
-                Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.maxww, args.maxapart, resolution))
+                Params.append((Lib, key, args.pw, args.ww, args.siglevel, args.maxww, args.maxapart, res))
 
         if args.nproc == 1:
             results = map(worker, Params)
@@ -167,8 +167,9 @@ def run():
         
         for key, pixel_table in results:
             for pixel in pixel_table:
-                lineFormat = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6:.3g}\t{7:.3g}\t{8:.3g}\t{9:.3g}\n'
-                content = (key,) + pixel + pixel_table[pixel]
+                lineFormat = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7:.3g}\t{8}\t{9}\t{10:.3g}\t{11:.3g}\t{12:.3g}\n'
+                tmp = pixel_table[pixel]
+                content = (key, pixel[0], pixel[0]+res, key, pixel[1], pixel[1]+res, '.', tmp[3], '.', '.') + tmp[4:]
                 line = lineFormat.format(*content)
                 OF.write(line)
                     

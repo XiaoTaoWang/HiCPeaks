@@ -84,6 +84,7 @@ def run():
         import cooler
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
+        from hicpeaks.utilities import _parse_peakfile
         
         cmap = LinearSegmentedColormap.from_list('interaction',
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
@@ -115,32 +116,20 @@ def run():
         if not args.loop_file is None:
             loop_file = args.loop_file
             # Read loop data
-            loopType = np.dtype({'names':['chr','loc1','loc2','res'],
-                                 'formats':['U5', np.int, np.int, np.int]})
-            check = open(loop_file, 'rb').readline().rstrip().split()
-            loops = np.loadtxt(loop_file, dtype=loopType, skiprows=args.skip_rows, usecols=[0,1,2,3])
-            loops = loops[(loops['chr']==chrom)]
+            loops = _parse_peakfile(loop_file, skip=args.skip_rows)
+            loops = loops[chrom]
     
             # Mask original matrix using loop data
-            test_x = loops['loc1']
-            if len(check)==4:
-                resarr = loops['res']
-            else:
-                resarr = np.ones(loops['res'].size, dtype=int) * res
-            test_y = loops['loc2'] + resarr
-            mask = (test_x >= start) & (test_y < end)
-            loops = loops[mask]
-        
-            for x, y, orires in zip(loops['loc1'], loops['loc2'], resarr):
+            for xs, xe, ys, ye in loops:
                 # Lodate the peak pixel at given resolution
-                s_l = range(x//res, int(np.ceil((x+orires)/float(res))))
-                e_l = range(y//res, int(np.ceil((y+orires)/float(res))))
+                s_l = range(xs//res, int(np.ceil(xe/float(res))))
+                e_l = range(ys//res, int(np.ceil(ye/float(res))))
                 si, ei = None, None
                 for i in s_l:
                     for j in e_l:
                         st = i - start//res
                         et = j - start//res
-                        if (st < M.shape[0]) and (et < M.shape[0]):
+                        if (0 <= st < M.shape[0]) and (0 <= et < M.shape[0]):
                             if si is None:
                                 si, ei = st, et
                             else:
