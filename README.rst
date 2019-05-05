@@ -266,7 +266,7 @@ resolutions. Here's a *pseudo* command with 3 loop files at 5Kb, 10Kb, and 20Kb 
 
 Performance
 ===========
-The tables below show the performance test of *toCooler*, *pyBHFDR* and *pyHICCUPS* with low (T47D) and high (K562)
+The table below shows the performance test of *toCooler*, *pyBHFDR* and *pyHICCUPS* with low (T47D) and high (K562)
 sequencing data, at low (40K) and high (10K) resolutions.
 
 - Processor: 2.6 GHz Intel Core i7, Memory: 16 GB 2400 MHz DDR4
