@@ -66,6 +66,10 @@ def run():
         import cooler
         from hicpeaks.apa import apa_analysis, apa_submatrix
         from hicpeaks.utilities import _parse_peakfile, find_chrom_pre
+        from matplotlib.colors import LinearSegmentedColormap
+
+        cmap = LinearSegmentedColormap.from_list('interaction',
+                ['#FFFFFF','#ff9292','#ff6767','#F70000'])
 
         ## extract Hi-C matrix
         hic_pool = cooler.Cooler(args.path)
@@ -117,12 +121,12 @@ def run():
             vmax = maxi
         else:
             vmax = args.vmax
-        plt.imshow(avg, cmap=plt.cm.Reds, vmax=vmax, interpolation='none')
+        plt.imshow(avg, cmap=cmap, vmax=vmax, interpolation='none')
         plt.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
                         labelbottom=False, labeltop=False, labelleft=False, labelright=False)
-        plt.title('APA score = {0:.3g}, p-value = {1:.3g} ({2})'.format(score, p, apa.shape[0]))
+        plt.title('APA score = {0:.3g}, p-value = {1:.3g}'.format(score, p))
         plt.colorbar()
-        plt.savefig(args.output, dpi=args.dpi)
+        plt.savefig(args.output, dpi=args.dpi, bbox_inches='tight')
         plt.close()
 
 if __name__ == '__main__':
