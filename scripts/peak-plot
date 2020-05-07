@@ -32,8 +32,9 @@ def getargs():
     parser.add_argument('-E', '--end', type=int, help='End site (bp) of the region.')
     parser.add_argument('--skip-rows', default=0, type=int,
                         help='''Number of leading lines in the loop file to skip.''')
-    parser.add_argument('--correct', action='store_true',
-                        help='''Whether or not plot ICE-corrected heatmap.''')
+    parser.add_argument('--balance-type', default='ICE', choices=['CNV', 'ICE', 'RAW'],
+                        help='''Normalization type of the matrix.''')
+    parser.add_argument('--log', action='store_true')
     parser.add_argument('--vmin', type=float,
                         help='''The minimum value that the colorbar covers.''')
     parser.add_argument('--vmax', type=float,
@@ -85,10 +86,19 @@ def run():
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
         from hicpeaks.utilities import _parse_peakfile
+        from matplotlib.colors import LogNorm
         
         cmap = LinearSegmentedColormap.from_list('interaction',
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
-        cmap.set_bad('#2672a1')
+        #cmap.set_bad('#2672a1')
+        cmap.set_bad('w')
+
+        if args.balance_type == 'ICE':
+            correct = 'weight'
+        elif args.balance_type == 'CNV':
+            correct = 'sweight'
+        else:
+            correct = False
 
         # Load Cooler
         Lib = cooler.Cooler(args.path)
@@ -98,7 +108,7 @@ def run():
         res = Lib.binsize
         start = start//res * res
         end = end//res * res
-        M = Lib.matrix(balance=args.correct, sparse=False).fetch((chrom,start,end))
+        M = Lib.matrix(balance=correct, sparse=False).fetch((chrom,start,end))
         M[np.isnan(M)] = 0
     
         nonzero = M[np.nonzero(M)]
@@ -150,7 +160,11 @@ def run():
 
         fig = plt.figure(figsize=size)
         ax = fig.add_axes([Left, HB, width, HH])
-        sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
+        if args.log:
+            sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
+                          norm=LogNorm(vmin=vmin, vmax=vmax))
+        else:
+            sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
                        vmax = vmax, vmin = vmin)
         if args.nolabel:
             ax.tick_params(axis='both', bottom=False, top=False, left=False, right=False,

@@ -40,6 +40,8 @@ def getargs():
                         help='''Width of the window in APA analysis.''')
     parser.add_argument('-C', '--corner-size', default=3, type=int,
                         help='''Lower-/upper-corner size of the resulted APA matrix.''')
+    parser.add_argument('--colormap-name', default='Reds',
+                        help='Name of the colormap in matplotlib.')
     parser.add_argument('--vmax', type=float,
                         help='''The maximum value that the colorbar covers.''')
         
@@ -121,10 +123,10 @@ def run():
             vmax = maxi
         else:
             vmax = args.vmax
-        plt.imshow(avg, cmap=cmap, vmax=vmax, interpolation='none')
+        plt.imshow(avg, cmap=args.colormap_name, vmax=vmax, interpolation='none')
         plt.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
                         labelbottom=False, labeltop=False, labelleft=False, labelright=False)
-        plt.title('APA score = {0:.3g}, p-value = {1:.3g}'.format(score, p))
+        #plt.title('APA score = {0:.3g}, p-value = {1:.3g}'.format(score, p))
         plt.colorbar()
         plt.savefig(args.output, dpi=args.dpi, bbox_inches='tight')
         plt.close()
