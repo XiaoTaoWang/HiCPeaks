@@ -90,8 +90,8 @@ def run():
         
         cmap = LinearSegmentedColormap.from_list('interaction',
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
-        #cmap.set_bad('#2672a1')
-        cmap.set_bad('w')
+        cmap.set_bad('#2672a1')
+        #cmap.set_bad('w')
 
         if args.balance_type == 'ICE':
             correct = 'weight'
