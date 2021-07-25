@@ -1,5 +1,8 @@
 HiCPeaks
 ========
+.. image:: https://static.pepy.tech/personalized-badge/hicpeaks?period=total&units=international_system&left_color=black&right_color=orange&left_text=Downloads
+ :target: https://pepy.tech/project/hicpeaks
+
 *hicpeaks* provide a Python CPU-based implementation for BH-FDR and HiCCUPS, two peak calling algorithms
 for Hi-C data, proposed by Rao et al [1]_.
 
