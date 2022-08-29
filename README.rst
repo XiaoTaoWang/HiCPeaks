@@ -298,6 +298,10 @@ sequencing data, at low (40K) and high (10K) resolutions.
 
 Release Notes
 =============
+Version 0.3.5 (08/28/2022)
+--------------------------
+- Added parameters to *peak-plot* and *apa-analysis* so that the output figures can be more finely tuned
+
 Version 0.3.4 (05/04/2019)
 --------------------------
 - Improved the efficiency of the local clustering algorithm
