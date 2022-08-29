@@ -241,7 +241,7 @@ Now, you can visualize the detected peaks/loops using *peak-plot*::
 
 The output figure should look like this:
 
-.. image:: ./figures/test-HICCUPS.png
+.. image:: ./figures/test-HICCUPS-new.png
         :align: center
 
 
@@ -253,7 +253,7 @@ To inspect the overall loop patterns of the detected peaks, you can use the *apa
 
 The output plot should look like this:
 
-.. image:: ./figures/apa.png
+.. image:: ./figures/apa-new.png
         :align: center
 
 Combine different resolutions
