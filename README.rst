@@ -61,7 +61,7 @@ Install hicpeaks
 ----------------
 Finally, hicpeaks can be installed from PyPI using pip::
 
-    $ pip install hicpeaks
+    $ pip install -U hicpeaks
 
 Overview
 ========
