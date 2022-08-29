@@ -59,7 +59,7 @@ Then type and execute the commands below to satisfy the requirements::
 
 Install hicpeaks
 ----------------
-Finally, hicpeaks can be installed from PyPI using pip:
+Finally, hicpeaks can be installed from PyPI using pip::
 
     $ pip install hicpeaks
 
