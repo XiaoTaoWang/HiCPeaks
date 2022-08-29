@@ -300,55 +300,52 @@ Release Notes
 =============
 Version 0.3.4 (05/04/2019)
 --------------------------
-- Improved the local clustering efficiency
-- Changed output loop format to bedpe
+- Improved the efficiency of the local clustering algorithm
+- Changed the output loop format to bedpe
 
 Version 0.3.3 (03/08/2019)
 --------------------------
-- Float matrix support in *toCooler* transformation
+- Made *toCooler* support the float data type
 - Removed ticklabels in APA plot
 
 Version 0.3.2 (03/03/2019)
 --------------------------
-1. Supported combination of different resolutions
-2. Changed local clustering algorithm
-3. Added APA module
-4. Compatible with cooler 0.8
-5. Old distutils to setuptools
+- Supported combination of different resolutions
+- Improved the local clustering algorithm
+- Added the APA analysis module
+- Dealed with the compatiblility with cooler 0.8
 
 Version 0.3.0 (09/03/2018)
 --------------------------
-1. Removed horizontal and vertical backgrounds for performance
-2. Supported multiple parameters (pw and ww)
-3. Supported Python 3
-4. Optimized the calculation
-5. Code refactoring
-6. Fixed bugs when users provide with external .cool files.
+- Removed the horizontal and vertical backgrounds
+- Supported multiple combinations of the *pw* and *ww* parameters
+- Migrated to Python 3
+- Optimized the calculation efficiency
+- Fixed bugs when external .cool files are provided.
 
 Version 0.2.0-r1 (08/26/2018)
 -----------------------------
-1. Speeded up the program by dynamically limiting donut width
-2. Added performance table in README.rst
+- Speeded up the program by dynamically limiting the donut widths
 
 Version 0.2.0 (08/25/2018)
 --------------------------
-1. Added vertical and horizontal backgrounds 
-2. Added additional filtering based on dbscan clusters and more stringent q value thresholds
-3. Fixed bugs in storing interchromosomal data
+- Added the vertical and horizontal backgrounds 
+- Added additional filtering procedures based on the dbscan clusters and more stringent q value cutoffs
+- Fixed bugs of *toCooler* in storing the inter-chromosomal data
 
 Version 0.1.1 (08/24/2018)
 --------------------------
-1. Lower memory usage and more efficient calculation
+- Lower memory usage and more efficient calculation
 
 Version 0.1.0 (08/22/2018)
 --------------------------
-1. The first release.
-2. Added *toCooler* and *peak-plot*.
-3. Added multiple process support.
+- The first release.
+- Added *toCooler* and *peak-plot*.
+- Added support for multiple processing.
 
 Pre-Release (05/04/2015)
 -----------------------------
-1. Implemented core algorithms of BH-FDR and HICCUPS
+- Implemented core algorithms of BH-FDR and HICCUPS
 
 
 
