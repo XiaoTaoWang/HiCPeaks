@@ -39,22 +39,23 @@ All above requirements can be installed through the conda package manager.
 Choose an appropriate `Miniconda installer <https://conda.io/miniconda.html>`_ for your system,
 then in your terminal window type the following and follow the prompts on the installer screens::
 
-    $ $ bash Miniconda3-latest-Linux-x86_64.sh
+    $ bash Miniconda3-latest-Linux-x86_64.sh
 
 After that, update the environment variables to finish the Conda installation::
 
     $ source ~/.bashrc
 
 Next, you need to set up channels to make all packages listed above accessible (note
-that the order is important to guarantee the correct priority):
+that the order is important to guarantee the correct priority)::
     
     $ conda config --add channels defaults
     $ conda config --add channels bioconda
     $ conda config --add channels conda-forge
 
-Then type and execute the commands below to satisfy the requirements:
+Then type and execute the commands below to satisfy the requirements::
 
-    $ conda install numpy scipy matplotlib pandas statsmodels scikit-learn h5py multiprocess cooler ucsc-fetchchromsizes
+    $ conda create -n HiCPeaks numpy scipy matplotlib pandas statsmodels scikit-learn h5py multiprocess cooler ucsc-fetchchromsizes
+    $ conda activate HiCPeaks
 
 Install hicpeaks
 ----------------
