@@ -143,7 +143,7 @@ working directory to the sub-folder *example*::
 
 There is a sub-directory called *25K* and a metadata file called *datasets*. The *25K* folder contains chromatin
 interactions of chromosome 21 of the K562 cell line at the 25K resolution, and the *datasets* describes the data
-that need to be transformed.
+that need to be transformed::
 
     $ cd 25K
     $ head -5 21_21.txt
@@ -234,7 +234,7 @@ and the additional fields are:
 
 Peak Visualization
 ------------------
-Now, you can visualize the detected peaks/loops using *peak-plot*:
+Now, you can visualize the detected peaks/loops using *peak-plot*::
 
     $ peak-plot -O test-HICCUPS.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 25000000 -E 31000000 --correct
 
