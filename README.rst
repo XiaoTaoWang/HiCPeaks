@@ -236,7 +236,8 @@ Peak Visualization
 ------------------
 Now, you can visualize the detected peaks/loops using *peak-plot*::
 
-    $ peak-plot -O test-HICCUPS.png --dpi 200 -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -C 21 -S 25000000 -E 31000000 --correct
+    $ peak-plot -O test-HICCUPS.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt \
+      -C 21 -S 25000000 -E 29500000 --balance-type ICE --vmin 0 --vmax 0.008
 
 The output figure should look like this:
 
