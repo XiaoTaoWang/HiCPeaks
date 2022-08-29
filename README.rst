@@ -249,7 +249,7 @@ Aggregate Peak Analysis
 -----------------------
 To inspect the overall loop patterns of the detected peaks, you can use the *apa-analysis* script::
 
-    $ apa-analysis -O apa.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -U
+    $ apa-analysis -O apa.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -U --vmax 2
 
 The output plot should look like this:
 
