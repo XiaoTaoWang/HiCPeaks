@@ -20,7 +20,7 @@ def getargs():
     
     # Output
     parser.add_argument('-O', '--output', help='Output png file name.')
-    parser.add_argument('--dpi', default=200, type=int,
+    parser.add_argument('--dpi', default=500, type=int,
                         help='''The resolution in dots per inch of the output figure.''')
 
     # Input
@@ -34,15 +34,22 @@ def getargs():
                         help='''Number of leading lines in the loop file to skip.''')
     parser.add_argument('--balance-type', default='ICE', choices=['CNV', 'ICE', 'RAW'],
                         help='''Normalization type of the matrix.''')
-    parser.add_argument('--log', action='store_true')
     parser.add_argument('--vmin', type=float,
                         help='''The minimum value that the colorbar covers.''')
     parser.add_argument('--vmax', type=float,
                         help='''The maximum value that the colorbar covers.''')
-    parser.add_argument('--tick-num', type=int, default=2,
-                        help='''Number of ticks for genomic coordinates''')
+    parser.add_argument('--colormap-name', default='traditional',
+                        help='Name of the colormap in matplotlib.')
+    parser.add_argument('--marker-size', default=10, type=int, help='''Marker sizes.''')
+    parser.add_argument('--marker-color', default='#1F78B4', help='''Marker Colors''')
+    parser.add_argument('--marker-alpha', default=1, type=float,
+                       help='''The alpha blending value of loop markers, between 0
+                       (transparent) and 1 (opaque)''')
+    parser.add_argument('--marker-linewidth', default=0.5, type=float,
+                        help='''Marker line widths.''')
     parser.add_argument('--nolabel', action='store_true',
                         help='''Whether or not add genomic coordinates.''')
+    parser.add_argument('--log', action='store_true')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -52,25 +59,12 @@ def getargs():
     
     return args, commands
 
-def properU(pos):
+def print_coordinate(pos):
     
-    i_part = int(pos) // 1000000 # Integer Part
-    d_part = (int(pos) % 1000000) // 1000 # Decimal Part
-    
-    if (i_part > 0) and (d_part > 0):
-        return ''.join([str(i_part), 'M', str(d_part), 'K'])
-    elif (i_part == 0):
-        return ''.join([str(d_part), 'K'])
+    if pos % 1000000 == 0:
+        return '{0}M'.format(pos//1000000)
     else:
-        return ''.join([str(i_part), 'M'])
-
-def caxis_H(ax):
-    """
-    Axis Control for HeatMaps.
-    """
-    ax.yaxis.set_ticks_position('left')
-    ax.xaxis.set_ticks_position('bottom')
-    ax.tick_params(axis = 'both', labelsize = 12, length = 5, pad = 7)
+        return '{0:.2f}M'.format(pos/1000000)
 
 def run():
 
@@ -90,8 +84,6 @@ def run():
         
         cmap = LinearSegmentedColormap.from_list('interaction',
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
-        cmap.set_bad('#2672a1')
-        #cmap.set_bad('w')
 
         if args.balance_type == 'ICE':
             correct = 'weight'
@@ -110,19 +102,43 @@ def run():
         end = end//res * res
         M = Lib.matrix(balance=correct, sparse=False).fetch((chrom,start,end))
         M[np.isnan(M)] = 0
-    
+
+        # plot heatmap
         nonzero = M[np.nonzero(M)]
         if args.vmin is None:
             vmin = nonzero.min()
         else:
             vmin = args.vmin
         if args.vmax is None:
-            vmax = np.percentile(nonzero, 95)
+            vmax = np.percentile(nonzero, 93)
         else:
             vmax = args.vmax
 
+        size = (2.2, 2)
+        fig = plt.figure(figsize=size)
+        width = 0.7; Left = 0.1
+        HB = 0.1; HH = width * size[0] / size[1]
+        ax = fig.add_axes([Left, HB, width, HH])
+        if args.colormap_name=='traditional':
+            if args.log:
+                sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
+                            norm=LogNorm(vmin=vmin, vmax=vmax))
+            else:
+                sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
+                        vmax = vmax, vmin = vmin)
+        else:
+            if args.log:
+                sc = ax.imshow(M, cmap = args.colormap_name, aspect = 'auto',
+                            interpolation = 'none', norm=LogNorm(vmin=vmin, vmax=vmax))
+            else:
+                sc = ax.imshow(M, cmap = args.colormap_name, aspect = 'auto',
+                        interpolation = 'none', vmax = vmax, vmin = vmin)
+
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+
+        # extract and plot chromatin loops
         chrom = chrom.lstrip('chr')
-        Bool = np.zeros(M.shape, dtype=bool)
         if not args.loop_file is None:
             loop_file = args.loop_file
             # Read loop data
@@ -146,43 +162,35 @@ def run():
                                 if M[st,et] > M[si,ei]:
                                     si, ei = st, et
                 if not si is None:
-                    if si < ei:
-                        Bool[si, ei] = 1
-                    else:
-                        Bool[ei, si] = 1
-    
-        M = np.ma.array(M, mask = Bool)
+                    ax.scatter(si, ei, s=args.marker_size, c='none', marker='o',
+                               edgecolors=args.marker_color, alpha=args.marker_alpha,
+                               linewidths=args.marker_linewidth)
+                    ax.scatter(ei, si, s=args.marker_size, c='none', marker='o',
+                               edgecolors=args.marker_color, alpha=args.marker_alpha,
+                               linewidths=args.marker_linewidth)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        
+        # add coordinates
+        ax.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
+                       labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        for spine in ['right', 'top', 'bottom', 'left']:
+            ax.spines[spine].set_linewidth(0.9)
 
-        # Plot
-        size = (8, 7.3)
-        width = 0.7; Left = 0.1
-        HB = 0.1; HH = width * size[0] / size[1]
-
-        fig = plt.figure(figsize=size)
-        ax = fig.add_axes([Left, HB, width, HH])
-        if args.log:
-            sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
-                          norm=LogNorm(vmin=vmin, vmax=vmax))
-        else:
-            sc = ax.imshow(M, cmap = cmap, aspect = 'auto', interpolation = 'none',
-                       vmax = vmax, vmin = vmin)
-        if args.nolabel:
-            ax.tick_params(axis='both', bottom=False, top=False, left=False, right=False,
-                           labelbottom=False, labeltop=False, labelleft=False, labelright=False)
-        else:
-            interval = (end - start) // res
-            ticks = list(np.linspace(0, interval, args.tick_num).astype(int))
-            pos = list(np.linspace(start, end, args.tick_num).astype(int))
-            labels = [properU(p) for p in pos]
-            ax.set_xticks(ticks)
-            ax.set_xticklabels(labels)
-            ax.set_yticks(ticks)
-            ax.set_yticklabels(labels)
-            caxis_H(ax)
+        if not args.nolabel:
+            fontsize=6
+            offset = 0.02 * (xmax - xmin)
+            ax.text(xmin, ymin+offset, print_coordinate(start), va='top', ha='left', fontsize=fontsize)
+            ax.text(xmax, ymin+offset, print_coordinate(end), va='top', ha='right', fontsize=fontsize)
+            ax.text(-offset, ymax, print_coordinate(start), rotation=90, va='top', ha='right', fontsize=fontsize)
+            ax.text(-offset, ymin, print_coordinate(end), rotation=90, va='bottom', ha='right', fontsize=fontsize)
+            ax.text((xmin+xmax)/2, ymin+2*offset, 'chr'+chrom, va='top', ha='center', fontsize=fontsize)
+            ax.text(-2*offset, (ymin+ymax)/2, 'chr'+chrom, rotation=90, va='center', ha='right', fontsize=fontsize)
 
         ## Colorbar
-        ax = fig.add_axes([Left+width+0.03, HB, 0.03, HH])
-        fig.colorbar(sc, cax=ax)
+        ax = fig.add_axes([Left+width+0.04, 0.72, 0.03, 0.15])
+        fig.colorbar(sc, cax=ax, ticks=[vmin, vmax], format='%.3g')
+        ax.tick_params(labelsize=5)
 
         plt.savefig(args.output, bbox_inches='tight', dpi=args.dpi)
         plt.close()
