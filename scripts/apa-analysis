@@ -11,8 +11,7 @@ currentVersion = hicpeaks.__version__
 
 def getargs():
     ## Construct an ArgumentParser object for command-line arguments
-    parser = argparse.ArgumentParser(description='''Perform Aggregate Peak Analysis (APA) on
-                                     a loop list.''',
+    parser = argparse.ArgumentParser(description='''Perform Aggregate Peak Analysis (APA).''',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     
     # Version
@@ -21,7 +20,7 @@ def getargs():
                         help='Print version number and exit.')
     
     # Output
-    parser.add_argument('-O', '--output', help='Output png file name.')
+    parser.add_argument('-O', '--output', help='Output file name.')
     parser.add_argument('--dpi', default=200, type=int,
                         help='''The resolution in dots per inch of the output figure.''')
     

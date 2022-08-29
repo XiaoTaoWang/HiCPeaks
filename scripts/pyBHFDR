@@ -12,7 +12,7 @@ currentVersion = hicpeaks.__version__
 def getargs():
     ## Construct an ArgumentParser object for command-line arguments
     parser = argparse.ArgumentParser(usage = '%(prog)s <-O output> [options]',
-                                     description = 'A CPU-based implementation for BH-FDR algorithm.',
+                                     description = 'A CPU-based implementation for the BH-FDR algorithm.',
                                      formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     
     # Version
@@ -21,7 +21,7 @@ def getargs():
                         help='Print version number and exit.')
 
     # Output
-    parser.add_argument('-O', '--output', help = 'Output bedpe file name.')
+    parser.add_argument('-O', '--output', help = 'Output file name.')
     parser.add_argument('--logFile', default = 'pyBHFDR.log', help = 'Logging file name.')
     
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
@@ -37,14 +37,14 @@ def getargs():
     group_2 = parser.add_argument_group(title = 'Algorithm Parameters:')
     group_2.add_argument('--pw', type = int, default = 2, help = 'Width of the interaction '
                          'region surrounding the peak. According to experience, we set it'
-                         ' to 1 at 20 kb, 2 at 10 kb, and 4 at 5 kb.')
+                         ' to 1 at 20kb, 2 at 10kb, and 4 at 5kb.')
     group_2.add_argument('--ww', type = int, default = 5, help = 'Width of the donut '
-                         'sampled. Set it to 3 at 20 kb, 5 at 10 kb, and 7 at 5 kb.')
+                         'sampled. Set it to 3 at20 kb, 5 at 10kb, and 7 at 5kb.')
     group_2.add_argument('--maxww', type = int, default = 10, help = 'Maximum donut width.')
     group_2.add_argument('--siglevel', type = float, default = 0.05, help = 'Significant Level.')
     group_2.add_argument('--maxapart', type = int, default = 2000000, help = 'Maximum genomic'
                          ' distance between two loci.')
-    group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of worker processes.')
+    group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of processes to be allocated.')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
