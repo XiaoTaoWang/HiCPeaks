@@ -44,6 +44,9 @@ def getargs():
     group_2.add_argument('--siglevel', type = float, default = 0.05, help = 'Significant Level.')
     group_2.add_argument('--maxapart', type = int, default = 2000000, help = 'Maximum genomic'
                          ' distance between two loci.')
+    group_2.add_argument('--clr-weight-name', default='weight',
+                         help='''The name of the weight column in your Cooler URI for normalizing
+                         the contact signals.''')
     group_2.add_argument('--nproc', type = int, default = 1, help = 'Number of processes to be allocated.')
     
     ## Parse the command-line arguments
@@ -92,6 +95,7 @@ def run():
                    '# Maximum donut width = {}'.format(args.maxww),
                    '# Significant Level = {}'.format(args.siglevel),
                    '# Maximum Genomic distance = {}'.format(args.maxapart),
+                   '# Weight column name = {}'.format(args.clr_weight_name),
                    '# Number of Processes = {}'.format(args.nproc)
                    ]
         
@@ -109,7 +113,7 @@ def run():
             Lib, key, pw, ww, siglevel, maxww, maxapart, resolution = tuple_arg
             #logger.info('Chromosome %s ...', key.lstrip('chr'))
             H = Lib.matrix(balance=False, sparse=True).fetch(key)
-            cHeatMap = Lib.matrix(balance=True, sparse=True).fetch(key)
+            cHeatMap = Lib.matrix(balance=args.clr_weight_name, sparse=True).fetch(key)
             # Customize Sparse Matrix ...
             chromLen = H.shape[0]
             num = args.maxapart // resolution + args.maxww + 1
@@ -129,7 +133,7 @@ def run():
 
             del H, cHeatMap
 
-            tmp = Lib.bins().fetch(key)['weight'].values
+            tmp = Lib.bins().fetch(key)[args.clr_weight_name].values
             mask = np.logical_not((tmp==0) | np.isnan(tmp))
             biases = np.zeros_like(tmp)
             biases[mask] = 1/tmp[mask]

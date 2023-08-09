@@ -32,8 +32,9 @@ def getargs():
     parser.add_argument('-E', '--end', type=int, help='End site (bp) of the region.')
     parser.add_argument('--skip-rows', default=0, type=int,
                         help='''Number of leading lines in the loop file to skip.''')
-    parser.add_argument('--balance-type', default='ICE', choices=['CNV', 'ICE', 'RAW'],
-                        help='''Normalization type of the matrix.''')
+    parser.add_argument('--clr-weight-name', default='weight',
+                        help='''The name of the weight column in your Cooler URI for normalizing
+                        the contact signals. Specify it to "raw" if you want to plot the raw signals.''')
     parser.add_argument('--vmin', type=float,
                         help='''The minimum value that the colorbar covers.''')
     parser.add_argument('--vmax', type=float,
@@ -85,12 +86,10 @@ def run():
         cmap = LinearSegmentedColormap.from_list('interaction',
                                                  ['#FFFFFF','#FFDFDF','#FF7575','#FF2626','#F70000'])
 
-        if args.balance_type == 'ICE':
-            correct = 'weight'
-        elif args.balance_type == 'CNV':
-            correct = 'sweight'
-        else:
+        if args.clr_weight_name.lower() == 'raw':
             correct = False
+        else:
+            correct = args.clr_weight_name
 
         # Load Cooler
         Lib = cooler.Cooler(args.path)

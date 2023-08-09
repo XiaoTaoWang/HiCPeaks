@@ -30,8 +30,6 @@ def getargs():
     parser.add_argument('-I', '--loop-file', help='Loop file in bedpe format.')
     parser.add_argument('-S', '--skip-rows', default=0, type=int,
                         help='''Number of leading lines in the loop file to skip.''')
-    parser.add_argument('-U', '--useICE', action='store_true',
-                        help='''Whether or not use ICE-corrected matrix.''')
     parser.add_argument('-M', '--min-dis', default=10, type=int,
                         help='''We only examine peak calls where the peak loci are separated by at
                         least this number of bins.''')
@@ -39,6 +37,9 @@ def getargs():
                         help='''Width of the window in APA analysis.''')
     parser.add_argument('-C', '--corner-size', default=3, type=int,
                         help='''Lower-/upper-corner size of the resulted APA matrix.''')
+    parser.add_argument('--clr-weight-name', default='weight',
+                        help='''The name of the weight column in your Cooler URI for normalizing
+                        the contact signals. Specify it to "raw" if you want to use the raw signals.''')
     parser.add_argument('--colormap-name', default='traditional',
                         help='Name of the colormap in matplotlib.')
     parser.add_argument('--vmax', type=float,
@@ -72,10 +73,14 @@ def run():
         cmap = LinearSegmentedColormap.from_list('interaction',
                 ['#FFFFFF','#ff9292','#ff6767','#F70000'])
 
+        if args.clr_weight_name.lower() == 'raw':
+            correct = False
+        else:
+            correct = args.clr_weight_name
+            
         ## extract Hi-C matrix
         hic_pool = cooler.Cooler(args.path)
         res = hic_pool.binsize
-        correct = args.useICE
 
         # consistent chromosome label
         pre = find_chrom_pre(hic_pool.chromnames)
