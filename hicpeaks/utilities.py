@@ -228,7 +228,7 @@ class Genome(object):
                 self.Map[res] = self._scanFolder(data[res])
 
         self._intertype = np.dtype({'names':['bin1', 'bin2', 'IF'],
-                                    'formats':[np.int, np.int, np.float]})
+                                    'formats':[np.int32, np.int32, np.float64]})
         
         log.info('Extract and save data into cooler format for each resolution ...')
         for res in self.Map:

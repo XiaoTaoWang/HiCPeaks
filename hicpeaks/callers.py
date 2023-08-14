@@ -27,7 +27,7 @@ def lambdachunk(E):
     if E.size==0:
         return []
     
-    numbin = np.int(np.ceil(np.log(E.max()) / np.log(2) * 3 + 1))
+    numbin = int(np.ceil(np.log(E.max()) / np.log(2) * 3 + 1))
     Pool = []
     for i in range(1, numbin + 1):
         if i == 1:
@@ -669,7 +669,7 @@ def _cluster_core(sort_list, r, visited, final_list):
                 tmp = np.r_[Local]
                 # assign centroid to a certain pixel
                 cen = tuple(tmp.mean(axis=0).round().astype(int))
-                rad = np.int(np.round(max([euclidean(cen,q) for q in Local]))) + r
+                rad = np.int32(np.round(max([euclidean(cen,q) for q in Local]))) + r
                 sub = np.r_[out]
             for q in Local:
                 pool.add(q)
