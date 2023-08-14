@@ -236,7 +236,7 @@ Peak Visualization
 Now, you can visualize the detected peaks/loops using *peak-plot*::
 
     $ peak-plot -O test-HICCUPS.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt \
-      -C 21 -S 25000000 -E 29500000 --balance-type ICE --vmin 0 --vmax 0.008
+      -C 21 -S 25000000 -E 29500000 --clr-weight-name weight --vmin 0 --vmax 0.008
 
 The output figure should look like this:
 
@@ -248,7 +248,7 @@ Aggregate Peak Analysis
 -----------------------
 To inspect the overall loop patterns of the detected peaks, you can use the *apa-analysis* script::
 
-    $ apa-analysis -O apa.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt -U --vmax 2
+    $ apa-analysis -O apa.png -p K562-MboI-parts.cool::25000 -I K562-MboI-HICCUPS-loops.txt --clr-weight-name weight --vmax 2
 
 The output plot should look like this:
 
