@@ -90,9 +90,7 @@ def run():
         # Logger Level
         logger.setLevel(10)
         console = logging.StreamHandler()
-        filehandler = logging.handlers.RotatingFileHandler(args.logFile,
-                                                           maxBytes = 200000,
-                                                           backupCount = 5)
+        filehandler = logging.FileHandler(args.logFile)
         # Set level for Handlers
         console.setLevel('INFO')
         filehandler.setLevel('INFO')
