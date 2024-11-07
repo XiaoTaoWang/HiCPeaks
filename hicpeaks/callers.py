@@ -43,7 +43,7 @@ def lambdachunk(E):
 
 def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[5],
             maxww=20, sig=0.1, sumq=0.01, double_fold=1.75, single_fold=2, maxapart=2000000,
-            res=10000, use_raw=False, min_marginal_peaks=3, onlyanchor=True):
+            res=10000, use_raw=False, min_marginal_peaks=3, onlyanchor=True, min_local_reads=25):
 
     # more codes for lower memory
     # use reference instead of creating new arrays
@@ -98,7 +98,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
     p_w = pw_ww_pairs(pw, ww, maxww)
                 
     ## Peak Calling ...    
-    vxi, vyi = M.nonzero()
+    vxi, vyi = cM.nonzero()
     Mask = ((vyi - vxi) >= min(ww)) & ((vyi - vxi) <= (maxapart // res))
     vxi = vxi[Mask]
     vyi = vyi[Mask]
@@ -203,7 +203,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
         Txi = vxi[RefIdx[pi]]
         Tyi = vyi[RefIdx[pi]]
         RNums = np.array(Reads[Txi, Tyi]).ravel()
-        EIdx = RefIdx[pi][RNums >= 16]
+        EIdx = RefIdx[pi][RNums >= min_local_reads]
         logger.info('Chrom:{0},    ({1},{2}) Valid Contact Number from This Loop: {3}'.format(chrom, pi, wi, EIdx.size))
         Valid_Ratio = EIdx.size/float(iniNum[pi])
         Exi = vxi[EIdx]
@@ -212,7 +212,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
             bSV[pi][fl][EIdx] = np.array(bS[fl][Exi, Eyi]).ravel()
             bEV[pi][fl][EIdx] = np.array(bE[fl][Exi, Eyi]).ravel()
                 
-        RefIdx[pi] = RefIdx[pi][RNums < 16]
+        RefIdx[pi] = RefIdx[pi][RNums < min_local_reads]
             
         iniNum[pi] = RefIdx[pi].size
 
