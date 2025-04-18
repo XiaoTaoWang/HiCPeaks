@@ -495,8 +495,8 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
     """
     from scipy.spatial import distance_matrix
 
-    thre1 = 20000
-    thre2 = 50000
+    thre1 = 2 * max_res
+    thre2 = 5 * max_res
     if len(byres)==1:
         peak_list = []
         for r in byres:
@@ -528,7 +528,7 @@ def combine_annotations(byres, good_res=10000, mindis=100000, max_res=10000):
                             peak_list.add(key)
                         continue
                     dis = distance_matrix([(p[0],p[2])], ref).ravel()
-                    if reslist[i]<20000 and reslist[j]<20000:
+                    if reslist[i]<thre1 and reslist[j]<thre1:
                         mask = dis <= thre1
                     else:
                         mask = dis <= thre2

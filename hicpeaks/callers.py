@@ -98,7 +98,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
     p_w = pw_ww_pairs(pw, ww, maxww)
                 
     ## Peak Calling ...    
-    vxi, vyi = cM.nonzero()
+    vxi, vyi = M.nonzero()
     Mask = ((vyi - vxi) >= min(ww)) & ((vyi - vxi) <= (maxapart // res))
     vxi = vxi[Mask]
     vyi = vyi[Mask]
@@ -352,7 +352,7 @@ def hiccups(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw=[2], ww=[
     logger.info('Chrom:{0}, Perform greedy clustering and additional filtering ...'.format(chrom))
     Donuts = {(k[0]//res,k[1]//res):pixel_table[k][3:8] for k in pixel_table}
     LL = {(k[0]//res,k[1]//res):pixel_table[k][8:] for k in pixel_table}
-    peak_list = local_clustering(Donuts, LL, res, min_count=min_marginal_peaks, r=20000, sumq=sumq,
+    peak_list = local_clustering(Donuts, LL, res, min_count=min_marginal_peaks, r=2*res, sumq=sumq,
                                  onlysummit=onlyanchor)
     final_table = {}
     for pixel, cen, radius in peak_list:
@@ -578,7 +578,7 @@ def bhfdr(M, cM, B1, B2, IR, chromLen, Diags, cDiags, num, chrom, pw = 2, ww = 5
     
     logger.info('Chrom:{0}, Perform greedy clustering and additional filtering ...'.format(chrom))
     Donuts = dict(zip(zip(xpos, ypos), zip(Ovalues, Fold, pvalues, qvalues)))
-    pixel_list = local_clustering(Donuts, None, res, min_count=min_marginal_peaks, r=20000,
+    pixel_list = local_clustering(Donuts, None, res, min_count=min_marginal_peaks, r=2*res,
                                   onlysummit=onlyanchor) # by default, radius is set to 20Kb
     pixel_table = {}
     for pixel, cen, radius in pixel_list:
