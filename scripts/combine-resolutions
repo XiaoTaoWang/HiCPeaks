@@ -39,6 +39,9 @@ def getargs():
     parser.add_argument('--max-res', type=int, default=10000,
                         help='''Allowed largest resolution for output, i.e., only peaks originally
                         at this or less than this resolution will be outputed.''')
+    parser.add_argument('--minapart', type=int, default=0, 
+                        help='''Minimum genomic distance between two loci of a loop, in units of bins.
+                        By default, no minimum distance is required.''')
     
     ## Parse the command-line arguments
     commands = sys.argv[1:]
@@ -67,6 +70,10 @@ def run():
 
         with open(args.output, 'w') as out:
             for t in peak_list:
+                if t[0] == t[3]:
+                    if t[4] - t[1] < args.minapart * (t[2] - t[1]):
+                        continue
+
                 line = ('chr'+t[0], str(t[1]), str(t[2]), 'chr'+t[3], str(t[4]), str(t[5]))
                 out.write('\t'.join(line)+'\n')
 
