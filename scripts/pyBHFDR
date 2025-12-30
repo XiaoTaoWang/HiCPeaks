@@ -27,7 +27,7 @@ def getargs():
     group_1 = parser.add_argument_group(title = 'Relate to Hi-C data:')
     group_1.add_argument('-p', '--path',
                          help = 'Cooler URI.')
-    group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X'],
+    group_1.add_argument('-C', '--chroms', nargs = '*', default = ['#', 'X', "2L", "2R", "3L", "3R"],
                         help = 'List of chromosome labels. Only Hi-C data within the specified '
                         'chromosomes will be included. Specially, "#" stands for chromosomes '
                         'with numerical labels. "--chroms" with zero argument will include '
